@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aura | The Mint Terminal for Life's Market Data</title>
+    <meta name="description" content="Aura is a high-performance reflection platform that treats your personal journey as a trading pair. Visualize burnout, find support levels, and maximize your Personal ROI." />
+    <meta name="keywords" content="Life satisfaction index, personal volatility chart, mood candlestick graph, quantified self tracker, Personal PNL, life ROI, habit market data, emotional support levels, life bull market, visualize burnout, journal for traders, quantify happiness, quantified self, life PNL, mood tracker, aura app, personal growth terminal, candlestick chart journal, mental health data" />
+    
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- 
+      Loading fonts via JS Fetch to inject as inline styles. 
+      This circumvents CORS restrictions on document.styleSheets access, 
+      fixing "Error inlining remote css file" in html-to-image.
+    -->
+    <script>
+      (function() {
+        const fontUrl = "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap";
+        fetch(fontUrl)
+          .then(res => res.text())
+          .then(css => {
+            const style = document.createElement('style');
+            style.textContent = css;
+            document.head.appendChild(style);
+          })
+          .catch(err => console.error("Error loading fonts:", err));
+      })();
+    </script>
+
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        /* Background color will be handled by App root div for theme switching */
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #E5E7EB;
+        border-radius: 4px;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #374151;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #D1D5DB;
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #4B5563;
+      }
+      /* Hide TradingView Attribution if it appears */
+      #tv-attr-logo, a[href^="https://www.tradingview.com/"] {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              background: '#F9FAFB',
+              primary: '#00C896', // Mint
+              'primary-dark': '#00A87E',
+              accent: '#1B3129', // Deep Forest
+              danger: '#FF5F5F',
+              surface: '#FFFFFF',
+              border: '#E5E7EB',
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "clsx": "https://esm.sh/clsx@^2.1.1",
+    "html-to-image": "https://esm.sh/html-to-image@^1.11.13",
+    "lightweight-charts": "https://esm.sh/lightweight-charts@4.2.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

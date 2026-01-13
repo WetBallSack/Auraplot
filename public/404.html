@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Signal Lost | Aura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#00C896',
+              'primary-dark': '#00A87E',
+              accent: '#1B3129',
+              background: '#050505',
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="bg-[#F9FAFB] dark:bg-[#050505] min-h-screen flex flex-col items-center justify-center p-4 text-center transition-colors overflow-hidden">
+    <!-- Detect Dark Mode script to prevent flash -->
+    <script>
+        // Check local storage or system preference
+        if (localStorage.getItem('aura-theme') === 'dark' || (!('aura-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            document.body.classList.remove('bg-[#F9FAFB]');
+            document.body.classList.add('bg-[#050505]');
+        } else {
+             document.documentElement.classList.remove('dark');
+             document.body.classList.add('bg-[#F9FAFB]');
+             document.body.classList.remove('bg-[#050505]');
+        }
+    </script>
+    
+    <div class="relative w-full max-w-lg">
+        <!-- Ambient Background Glows -->
+        <div class="absolute -top-32 -left-20 w-64 h-64 bg-primary/20 rounded-full blur-[80px] pointer-events-none opacity-60"></div>
+        <div class="absolute -bottom-32 -right-20 w-64 h-64 bg-blue-500/20 rounded-full blur-[80px] pointer-events-none opacity-60"></div>
+
+        <!-- Big 404 Text Background -->
+        <h1 class="text-[12rem] font-black text-gray-100 dark:text-[#111] leading-none tracking-tighter select-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
+            404
+        </h1>
+        
+        <!-- Glass Card -->
+        <div class="relative z-10 flex flex-col items-center justify-center">
+             <div class="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 p-10 rounded-[2.5rem] shadow-2xl w-full">
+                
+                <div class="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(0,200,150,0.2)]">
+                     <svg viewBox="0 0 24 24" fill="none" stroke="#00C896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">Signal Lost</h2>
+                
+                <p class="text-gray-600 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+                    The requested protocol endpoint could not be resolved in this timeline. The page you are looking for has been moved or deleted.
+                </p>
+
+                <a href="/" class="group relative block w-full bg-accent dark:bg-primary text-white dark:text-black font-bold py-4 rounded-xl transition-all hover:scale-[1.02] hover:shadow-lg overflow-hidden">
+                    <span class="relative z-10 flex items-center justify-center gap-2">
+                        Return to Terminal <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </span>
+                    <div class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                </a>
+
+             </div>
+        </div>
+    </div>
+  </body>
+</html>
