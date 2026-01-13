@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from './Logo';
@@ -108,7 +107,7 @@ const FeaturesTicker = () => {
     ];
 
     return (
-        <div className="w-full max-w-5xl allow-internal-scroll overflow-y-auto max-h-[55vh] md:max-h-none md:overflow-visible px-2 pb-4">
+        <div className="w-full max-w-5xl allow-internal-scroll overflow-y-auto no-scrollbar max-h-[55vh] md:max-h-none md:overflow-visible px-2 pb-4">
             <h2 className="text-2xl md:text-4xl font-light text-center mb-8 md:mb-16 text-gray-900 dark:text-white tracking-tight">{t('landing.features_title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {features.map((feat, i) => (
@@ -139,7 +138,7 @@ const FeaturesTicker = () => {
 const ProofOfGrowth = () => {
     const { t } = useLanguage();
     return (
-        <div className="w-full max-w-4xl flex flex-col items-center allow-internal-scroll overflow-y-auto max-h-[55vh] md:max-h-none md:overflow-visible px-2">
+        <div className="w-full max-w-4xl flex flex-col items-center allow-internal-scroll overflow-y-auto no-scrollbar max-h-[55vh] md:max-h-none md:overflow-visible px-2">
             <div className="text-center mb-6 md:mb-10">
                 <h2 className="text-2xl md:text-3xl font-light text-gray-900 dark:text-white tracking-tight mb-2">{t('landing.proof_title')}</h2>
                 <p className="text-xs md:text-sm text-gray-500 max-w-md mx-auto">{t('landing.proof_desc')}</p>

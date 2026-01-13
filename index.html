@@ -60,6 +60,14 @@
       .dark ::-webkit-scrollbar-thumb:hover {
         background: #4B5563;
       }
+      /* Utility to hide scrollbar */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
       /* Hide TradingView Attribution if it appears */
       #tv-attr-logo, a[href^="https://www.tradingview.com/"] {
         display: none !important;
