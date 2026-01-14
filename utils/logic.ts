@@ -1,3 +1,4 @@
+
 import { LifeEvent, OHLC, MarketSummary, Timeframe } from '../types';
 
 // Helper to format date as YYYY-MM-DD for lightweight-charts (Daily)
@@ -22,6 +23,60 @@ const seededRandom = (seed: number) => {
 
 // --- CORE GENERATION LOGIC ---
 
+/**
+ * NECM (Non-linear Event Candle Model) Logic
+ * Translates event data into financial OHLC candle values.
+ * 
+ * @param impact -10 (bearish) to 10 (bullish)
+ * @param intensity 0 (calm) to 10 (chaotic)
+ * @param stickiness 0 (local) to 1 (macro/global) - mapped to s in logic
+ * @param basePrice current market price
+ */
+export const calculateEventCandle = (impact: number, intensity: number, stickiness: number, basePrice: number) => {
+    // 1. Normalization
+    // impact: -10 to 10 -> -1.0 to 1.0
+    const i = Math.max(Math.min(impact / 10.0, 1.0), -1.0);
+    // intensity: 0 to 10 -> 0.0 to 1.0
+    const n = Math.max(Math.min(intensity / 10.0, 1.0), 0.0);
+    // stickiness: 0 to 1 -> 0.0 to 1.0 (Equivalent to scale/10 in python logic)
+    const s = Math.max(Math.min(stickiness, 1.0), 0.0);
+
+    // 2. Coefficients (Adjust to calibrate sensitivity)
+    const K = 0.15;      // Max body displacement (15% of price)
+    const LAMBDA = 0.08; // Max volatility/wick extension (8% of price)
+
+    // 3. Calculate Body Displacement (Non-linear)
+    const signI = i >= 0 ? 1 : -1;
+    // Uses power of 1.5 so high impact moves price exponentially more
+    const deltaP = basePrice * signI * Math.pow(Math.abs(i), 1.5) * Math.pow(s, 1.2) * K;
+
+    // 4. Calculate Volatility / Wicks
+    // Intensity squared creates "explosive" wicks as it approaches 10
+    const sigma = basePrice * Math.pow(n, 2) * Math.sqrt(s) * LAMBDA;
+
+    // 5. Calculate Asymmetric Skew (Panic Factor)
+    const skew = 1 + (Math.max(0, -i) * n);
+
+    // 6. Final OHLC Logic
+    const openP = basePrice;
+    const closeP = openP + deltaP;
+
+    // High: Top of body + volatility (slightly dampened if crashing)
+    const highP = Math.max(openP, closeP) + (sigma * (1 - 0.2 * Math.max(0, -i)));
+
+    // Low: Bottom of body - volatility (enhanced by skew)
+    const lowP = Math.min(openP, closeP) - (sigma * skew);
+
+    return {
+        open: openP,
+        high: highP,
+        low: lowP,
+        close: closeP,
+        // Helper for volume calculation if needed elsewhere
+        impliedVolume: intensity * 10 
+    };
+};
+
 // We generate the "Master" timeline at 1-hour resolution.
 // This ensures that when we aggregate to 4H or 1D, the Highs/Lows/Closes match perfectly.
 const generateHourlyMasterData = (initialScore: number, events: LifeEvent[]): OHLC[] => {
@@ -39,7 +94,6 @@ const generateHourlyMasterData = (initialScore: number, events: LifeEvent[]): OH
     }
 
     // Add Buffer (in hours)
-    // We add enough buffer to make the chart look nice
     const bufferHours = 48; 
     const loopStart = addMinutes(startDate, -(bufferHours * 60));
     const loopEnd = addMinutes(endDate, (bufferHours * 60));
@@ -78,18 +132,12 @@ const generateHourlyMasterData = (initialScore: number, events: LifeEvent[]): OH
             eventName = bucketEvents.map(e => e.name).join(', ');
             
             bucketEvents.forEach(e => {
-                volume += (e.intensity * 10);
+                const candle = calculateEventCandle(e.impact, e.intensity, e.stickiness, close);
                 
-                // Impact calculation
-                const volatilitySpike = e.impact * (e.intensity / 5.0);
-                const permanentMove = e.impact * e.stickiness;
-                
-                const spikePrice = close + volatilitySpike;
-                
-                high = Math.max(high, close, spikePrice);
-                low = Math.min(low, close, spikePrice);
-                
-                close = close + permanentMove;
+                high = Math.max(high, candle.high);
+                low = Math.min(low, candle.low);
+                close = candle.close;
+                volume += candle.impliedVolume;
             });
 
             // Ensure H/L encompass the final close

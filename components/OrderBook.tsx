@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Save, TrendingUp, TrendingDown, Check, FolderPlus, Loader2, Clock, Edit2, X, AlertCircle } from 'lucide-react';
-import { Order, Strategy, OHLC, SavedSession } from '../types';
+import { Plus, Trash2, Save, TrendingUp, TrendingDown, Check, FolderPlus, Loader2, Clock, Edit2, X, AlertCircle, Lock, Crown } from 'lucide-react';
+import { Order, Strategy, OHLC, SavedSession, ScheduledOrder } from '../types';
 import { api } from '../services/api';
 import { Chart } from './Chart';
+import { calculateEventCandle } from '../utils/logic';
 import clsx from 'clsx';
+import { useAuth } from '../contexts/AuthContext';
 
 interface OrderBookProps {
     existingSessions: SavedSession[];
@@ -13,8 +15,9 @@ interface OrderBookProps {
 }
 
 export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefreshHistory }) => {
+    const { user } = useAuth();
     // --- State ---
-    const [orders, setOrders] = useState<Order[]>([]);
+    const [scheduledOrders, setScheduledOrders] = useState<ScheduledOrder[]>([]);
     const [strategies, setStrategies] = useState<Strategy[]>([]);
     
     // Inputs
@@ -27,9 +30,12 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
     // Template Management
     const [strategyName, setStrategyName] = useState('');
     const [isSavingStrat, setIsSavingStrat] = useState(false);
-    const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    
+    // Clear All Confirmation State
+    const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
     
     // Session Merging State
     const [isCommitting, setIsCommitting] = useState(false);
@@ -44,22 +50,25 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
     // --- Effects ---
 
     useEffect(() => {
-        const savedOrders = localStorage.getItem('aura_checklist');
-        if (savedOrders) {
-            try {
-                setOrders(JSON.parse(savedOrders));
-            } catch (e) { console.error("Failed to parse local checklist"); }
-        }
-        
+        fetchTodayOrders();
         loadStrategies();
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('aura_checklist', JSON.stringify(orders));
         calculateLivePrice();
-    }, [orders]);
+    }, [scheduledOrders]);
 
     // --- Logic ---
+
+    const fetchTodayOrders = async () => {
+        const today = new Date().toISOString().split('T')[0];
+        try {
+            const data = await api.getScheduledOrders(today);
+            setScheduledOrders(data);
+        } catch (e) {
+            console.error("Failed to load scheduled orders", e);
+        }
+    };
 
     const loadStrategies = async () => {
         try {
@@ -86,7 +95,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
         const totalPoints = (24 * 60) / intervalMinutes; 
         
         // Only consider FILLED orders that have a TIME for plotting the curve
-        const filledOrders = orders
+        const filledOrders = scheduledOrders
             .filter(o => o.filled && o.time) 
             .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
@@ -131,16 +140,8 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
             let isEvent = false;
             let eventName = '';
 
-            // Logic:
-            // 1. Before first task: Flat line at 50.
-            // 2. Between first and last task: Simulate volatility + Apply events.
-            // 3. After last task: Flat line at last price.
-
             const isBeforeFirst = currentBucketStart < firstTaskMinute;
-            // Allow last bucket to process if it contains the last task
             const isAfterLast = currentBucketStart > lastTaskMinute; 
-
-            // Regression / Drift volatility
             const timeVolatility = 0.5;
 
             if (ordersInBucket.length > 0) {
@@ -149,40 +150,29 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                 eventName = ordersInBucket[0].name; 
                 
                 ordersInBucket.forEach(o => {
-                    volume += (o.intensity * 10);
-                    const volatilitySpike = o.impact * (o.intensity / 5.0);
-                    const permanentMove = o.impact * o.stickiness;
+                    const st = o.stickiness ?? 0.5; // Default if not present
+                    const candle = calculateEventCandle(o.impact, o.intensity, st, close);
                     
-                    const spikePrice = close + volatilitySpike;
-                    high = Math.max(high, close, spikePrice);
-                    low = Math.min(low, close, spikePrice);
-                    
-                    close = close + permanentMove;
+                    high = Math.max(high, candle.high);
+                    low = Math.min(low, candle.low);
+                    close = candle.close;
+                    volume += candle.impliedVolume;
                 });
-                // Ensure H/L encompass the final close
                 high = Math.max(high, close);
                 low = Math.min(low, close);
 
             } else if (!isBeforeFirst && !isAfterLast) {
-                // SIMULATION ZONE (Between events)
-                // Apply "Regression" / Noise drift
+                // SIMULATION ZONE
                 const rand = seededRandom(seed++);
                 const noise = (rand - 0.5) * timeVolatility;
-                
-                // Slight mean reversion logic (gravity towards 50)
                 const gravity = (50 - open) * 0.02; 
-                
                 close = open + noise + gravity;
-
                 const wickRand = seededRandom(seed++);
                 const wickSize = wickRand * (timeVolatility * 0.5);
                 high = Math.max(open, close) + wickSize;
                 low = Math.min(open, close) - wickSize;
-                
                 volume = Math.floor(seededRandom(seed++) * 5);
             } else {
-                // FLAT ZONE (Pre-start or Post-end)
-                // Keep close = open (previous close)
                 high = open;
                 low = open;
                 volume = 0;
@@ -204,60 +194,123 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
 
         setChartData(newChartData);
         
-        // Calculate Percentage Change for the end state
-        // This takes the last close price vs the baseline (50)
         const finalPrice = newChartData[newChartData.length - 1].close;
         const pctChange = ((finalPrice - baseline) / baseline) * 100;
         setPercentageChange(pctChange);
     };
 
-    const handleAddTask = (e: React.FormEvent) => {
+    const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!taskName) return;
 
-        const order: Order = {
-            id: crypto.randomUUID(),
-            name: taskName,
-            impact: impact,
-            intensity: intensity,
-            stickiness: stickiness,
-            filled: false,
-            timestamp: Date.now(),
-            time: taskTime || undefined
-        };
+        // Pro Limit Check
+        if (!user?.isPro && scheduledOrders.length >= 7) {
+            alert("Free Limit Reached: Upgrade to Aura Pro to add more than 7 items per day.");
+            return;
+        }
 
-        setOrders(prev => [...prev, order].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')));
+        const today = new Date().toISOString().split('T')[0];
+        try {
+            const newOrder = await api.saveScheduledOrder({
+                name: taskName,
+                impact: impact,
+                intensity: intensity,
+                time: taskTime || undefined,
+                filled: false,
+                scheduled_date: today,
+                stickiness: stickiness
+            });
+            
+            setScheduledOrders(prev => [...prev, newOrder].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')));
+            
+            setTaskName('');
+            setTaskTime('');
+            setImpact(5);
+            setIntensity(5);
+            setStickiness(0.5);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to add task.");
+        }
+    };
+
+    const handleToggleFill = async (order: ScheduledOrder) => {
+        try {
+            const updated = await api.saveScheduledOrder({
+                ...order,
+                filled: !order.filled
+            });
+            setScheduledOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleRemoveOrder = async (id: string) => {
+        try {
+            await api.deleteScheduledOrder(id);
+            setScheduledOrders(prev => prev.filter(o => o.id !== id));
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleClearDay = async () => {
+        if (!isConfirmingClear) {
+            setIsConfirmingClear(true);
+            // Reset confirmation after 4 seconds
+            setTimeout(() => setIsConfirmingClear(false), 4000);
+            return;
+        }
         
-        setTaskName('');
-        setTaskTime('');
-        setImpact(5);
-        setIntensity(5);
-        setStickiness(0.5);
+        setIsClearing(true);
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            await api.clearScheduledOrdersForDate(today);
+            setScheduledOrders([]);
+            setIsConfirmingClear(false);
+        } catch (e) {
+            alert("Failed to clear list.");
+        } finally {
+            setIsClearing(false);
+        }
     };
 
-    const handleToggleFill = (id: string) => {
-        setOrders(prev => prev.map(o => {
-            if (o.id === id) {
-                return { ...o, filled: !o.filled, timestamp: Date.now() };
-            }
-            return o;
-        }));
-    };
+    const handleLoadStrategy = async (strategy: Strategy) => {
+        if (scheduledOrders.length > 0 && !confirm("This will add strategy items to your existing list. Continue?")) return;
+        
+        // Pro Limit Check for Strategy Load
+        if (!user?.isPro && (scheduledOrders.length + strategy.orders.length > 7)) {
+             alert("Cannot deploy strategy: Exceeds 7-item daily limit for free accounts.");
+             return;
+        }
 
-    const handleRemoveOrder = (id: string) => {
-        setOrders(prev => prev.filter(o => o.id !== id));
+        const today = new Date().toISOString().split('T')[0];
+        try {
+            await api.deployStrategyToDate(strategy, today);
+            fetchTodayOrders();
+        } catch (e) {
+            alert("Failed to deploy strategy.");
+        }
     };
 
     const handleSaveStrategy = async () => {
         if (!strategyName) return;
         setIsSavingStrat(true);
         try {
-            if (editingStrategy) {
-                await api.updateStrategy(editingStrategy.id, strategyName, orders);
-                setEditingStrategy(null);
-            } else {
-                await api.saveStrategy(strategyName, orders);
-            }
+            // Map scheduled orders to generic Orders for template
+            const ordersForTemplate: Order[] = scheduledOrders.map(so => ({
+                id: crypto.randomUUID(),
+                name: so.name,
+                impact: so.impact,
+                intensity: so.intensity,
+                stickiness: so.stickiness || 0.5,
+                filled: false,
+                timestamp: Date.now(),
+                time: so.time
+            }));
+
+            await api.saveStrategy(strategyName, ordersForTemplate);
             setStrategyName('');
             loadStrategies();
         } catch (e) {
@@ -267,77 +320,23 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
         }
     };
 
-    const handleLoadStrategy = (strategy: Strategy) => {
-        // Prevent accidental clicks if deletion is armed on another item
-        if (confirmDeleteId) {
-            setConfirmDeleteId(null);
-            return;
-        }
-
-        if (orders.length > 0 && !confirm("Replace current list with this template?")) return;
-        
-        const freshOrders = strategy.orders.map(o => ({
-            ...o,
-            id: crypto.randomUUID(),
-            filled: false,
-            timestamp: Date.now()
-        }));
-        setOrders(freshOrders);
-        setEditingStrategy(null);
-    };
-
-    const handleEditStrategyStart = (e: React.MouseEvent, strategy: Strategy) => {
-        e.stopPropagation();
-        const freshOrders = strategy.orders.map(o => ({
-            ...o,
-            id: crypto.randomUUID(),
-            timestamp: Date.now()
-        }));
-        setOrders(freshOrders);
-        setEditingStrategy(strategy);
-        setStrategyName(strategy.name);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingStrategy(null);
-        setStrategyName('');
-        setOrders([]);
-    };
-
-    // --- DELETE LOGIC ---
-    
     const handleRequestDelete = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        e.preventDefault();
-        console.log("[OrderBook] Requesting delete for:", id);
-        
-        if (confirmDeleteId === id) {
-            setConfirmDeleteId(null); // Toggle off
-        } else {
+        if (confirmDeleteId === id) setConfirmDeleteId(null);
+        else {
             setConfirmDeleteId(id);
-            // Auto-reset confirmation after 4s
-            setTimeout(() => {
-                setConfirmDeleteId(prev => prev === id ? null : prev);
-            }, 4000);
+            setTimeout(() => setConfirmDeleteId(prev => prev === id ? null : prev), 4000);
         }
     };
 
     const handleExecuteDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        e.preventDefault();
-        
-        console.log("[OrderBook] Executing delete for:", id);
         setConfirmDeleteId(null);
         setIsDeleting(id);
-        
         try {
             await api.deleteStrategy(id);
-            console.log("[OrderBook] Delete successful");
-            // Force state update by filtering immediately
             setStrategies(prev => prev.filter(s => s.id !== id));
-            if (editingStrategy?.id === id) handleCancelEdit();
         } catch (error: any) {
-            console.error("[OrderBook] Delete failed error:", error);
             alert(`Could not delete template: ${error.message}`);
         } finally {
             setIsDeleting(null);
@@ -345,7 +344,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
     };
 
     const handleCommitSession = async () => {
-        const filled = orders.filter(o => o.filled);
+        const filled = scheduledOrders.filter(o => o.filled);
         if (filled.length === 0) {
             alert("Check off at least one item to commit.");
             return;
@@ -356,7 +355,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
             const todayStr = new Date().toISOString().split('T')[0];
             
             const newEvents = filled.map(o => {
-                let dateStr = new Date().toISOString(); // Default now
+                let dateStr = new Date().toISOString(); 
                 if (o.time) {
                     dateStr = `${todayStr}T${o.time}:00`;
                 }
@@ -367,7 +366,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                     date: dateStr, 
                     impact: o.impact,
                     intensity: o.intensity,
-                    stickiness: o.stickiness
+                    stickiness: o.stickiness || 0.5 
                 };
             });
 
@@ -391,9 +390,8 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                 });
             }
 
-            setOrders(prev => prev.filter(o => !o.filled));
             onRefreshHistory();
-            alert("Checklist committed successfully.");
+            alert("Checklist committed to history log successfully.");
 
         } catch (e: any) {
             console.error(e);
@@ -411,26 +409,14 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                 
                 {/* Add Task Card */}
                 <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-sm p-6 border border-gray-100 dark:border-zinc-800">
-                    <div className="mb-6">
-                        {editingStrategy ? (
-                            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl border border-yellow-100 dark:border-yellow-900/20 flex flex-col gap-3">
-                                <div className="flex justify-between items-start">
-                                    <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                        <Edit2 size={14} className="text-yellow-600 dark:text-yellow-400"/>
-                                        Editing: <span className="text-yellow-700 dark:text-yellow-300 truncate max-w-[120px]">{editingStrategy.name}</span>
-                                    </h2>
-                                </div>
-                                <button 
-                                    onClick={handleCancelEdit} 
-                                    className="w-full py-2 bg-white dark:bg-zinc-800 shadow-sm border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-danger hover:border-danger transition-all flex items-center justify-center gap-2 uppercase tracking-wide"
-                                >
-                                    <X size={14} /> Stop Editing
-                                </button>
+                    <div className="mb-6 flex justify-between items-center">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                            Add Item
+                        </h2>
+                        {!user?.isPro && (
+                            <div className="text-[10px] font-bold px-2 py-1 bg-gray-100 dark:bg-zinc-800 rounded flex items-center gap-1">
+                                {scheduledOrders.length}/7 <Lock size={10} />
                             </div>
-                        ) : (
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                                Add Item
-                            </h2>
                         )}
                     </div>
                     
@@ -476,7 +462,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                             />
                         </div>
 
-                        {/* Intensity & Stickiness */}
+                        {/* Intensity & Stickiness Grid */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="flex items-center justify-between text-[10px] font-semibold text-gray-400 uppercase">
@@ -508,10 +494,14 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
 
                         <button 
                             type="submit"
-                            disabled={!taskName}
+                            disabled={!taskName || (!user?.isPro && scheduledOrders.length >= 7)}
                             className="w-full bg-primary text-white py-3 rounded-xl text-sm font-bold hover:shadow-lg hover:translate-y-[-1px] active:translate-y-[0px] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Plus size={16} /> {editingStrategy ? 'Add to Template' : 'Add to List'}
+                            {!user?.isPro && scheduledOrders.length >= 7 ? (
+                                <><Lock size={16} /> Limit Reached</>
+                            ) : (
+                                <><Plus size={16} /> Add to Today</>
+                            )}
                         </button>
                     </form>
                 </div>
@@ -522,21 +512,14 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                             Templates
                         </h3>
-                        {editingStrategy && <span className="text-[10px] text-primary font-bold animate-pulse">EDITING ACTIVE</span>}
                     </div>
 
                     <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 custom-scrollbar">
                         {strategies.map(strat => (
                             <div key={strat.id} className="relative group">
-                                {/* 1. Main Clickable Card - Z-10 */}
                                 <div 
                                     onClick={() => handleLoadStrategy(strat)}
-                                    className={clsx(
-                                        "flex justify-between items-center p-3 rounded-xl border cursor-pointer transition-all hover:shadow-sm relative z-10",
-                                        editingStrategy?.id === strat.id 
-                                            ? "bg-primary/10 border-primary/30" 
-                                            : "bg-gray-50 dark:bg-zinc-800/50 border-transparent hover:bg-white dark:hover:bg-zinc-800 hover:border-gray-200 dark:hover:border-zinc-700"
-                                    )}
+                                    className="flex justify-between items-center p-3 rounded-xl border cursor-pointer transition-all hover:shadow-sm relative z-10 bg-gray-50 dark:bg-zinc-800/50 border-transparent hover:bg-white dark:hover:bg-zinc-800 hover:border-gray-200 dark:hover:border-zinc-700"
                                 >
                                     <div className="flex flex-col">
                                         <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{strat.name}</span>
@@ -544,17 +527,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                                     </div>
                                 </div>
 
-                                {/* 2. Action Buttons - Placed AFTER in DOM for higher stacking, Z-20 */}
                                 <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
-                                        onClick={(e) => handleEditStrategyStart(e, strat)}
-                                        className="p-1.5 rounded-lg bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-400 hover:text-primary shadow-sm hover:z-30 cursor-pointer"
-                                        title="Edit"
-                                        type="button"
-                                    >
-                                        <Edit2 size={12} />
-                                    </button>
-                                    
                                     <AnimatePresence mode="wait">
                                         {confirmDeleteId === strat.id ? (
                                             <motion.button
@@ -563,7 +536,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 exit={{ opacity: 0, scale: 0.8 }}
                                                 onClick={(e) => handleExecuteDelete(e, strat.id)}
-                                                onMouseDown={(e) => e.stopPropagation()} // Prevent double clicks
+                                                onMouseDown={(e) => e.stopPropagation()} 
                                                 className="p-1.5 rounded-lg bg-red-500 text-white border border-red-600 shadow-lg hover:bg-red-600 transition-colors flex items-center gap-1 z-50 cursor-pointer"
                                                 title="Confirm Delete"
                                                 type="button"
@@ -595,16 +568,13 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                             type="text" 
                             value={strategyName}
                             onChange={(e) => setStrategyName(e.target.value)}
-                            placeholder={editingStrategy ? "Update Name..." : "New Template Name..."}
+                            placeholder="Save list as template..."
                             className="flex-1 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-gray-300 outline-none dark:text-white"
                          />
                          <button 
                             onClick={handleSaveStrategy}
-                            disabled={!orders.length || !strategyName || isSavingStrat}
-                            className={clsx(
-                                "text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                                editingStrategy ? "bg-primary hover:bg-primary-dark" : "bg-gray-800 dark:bg-zinc-700 hover:bg-gray-700"
-                            )}
+                            disabled={!scheduledOrders.length || !strategyName || isSavingStrat}
+                            className="bg-gray-800 dark:bg-zinc-700 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                         >
                             {isSavingStrat ? <Loader2 size={14} className="animate-spin"/> : <Save size={14} />}
                         </button>
@@ -620,18 +590,49 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                     <div className="p-6 border-b border-gray-100 dark:border-zinc-800 flex justify-between items-center bg-gray-50/30 dark:bg-zinc-800/20 rounded-t-3xl">
                         <div>
                             <h2 className="font-bold text-gray-800 dark:text-white text-sm uppercase tracking-wide">
-                                {editingStrategy ? `Editing: ${editingStrategy.name}` : 'Today\'s Plan'}
+                                Today's Plan
                             </h2>
-                            {!editingStrategy && <div className="text-xs text-gray-400 mt-0.5">{new Date().toLocaleDateString()}</div>}
+                            <div className="text-xs text-gray-400 mt-0.5">{new Date().toLocaleDateString()}</div>
                         </div>
-                        <div className="text-xs font-mono text-gray-400 bg-white dark:bg-zinc-800 px-2 py-1 rounded border border-gray-100 dark:border-zinc-700">
-                            {orders.filter(o => o.filled).length} / {orders.length} Done
+                        <div className="flex items-center gap-3">
+                            <AnimatePresence mode="wait">
+                                {scheduledOrders.length > 0 && (
+                                    isConfirmingClear ? (
+                                        <motion.button
+                                            key="confirm-clear"
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            onClick={handleClearDay}
+                                            className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-bold flex items-center gap-1 shadow-lg"
+                                        >
+                                            <Trash2 size={12} /> Confirm Clear
+                                        </motion.button>
+                                    ) : (
+                                        <motion.button 
+                                            key="clear"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            onClick={handleClearDay}
+                                            disabled={isClearing}
+                                            className="text-xs font-medium text-red-400 hover:text-red-500 transition-colors flex items-center gap-1"
+                                            title="Clear All Tasks"
+                                        >
+                                            {isClearing ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Clear
+                                        </motion.button>
+                                    )
+                                )}
+                            </AnimatePresence>
+                            <div className="text-xs font-mono text-gray-400 bg-white dark:bg-zinc-800 px-2 py-1 rounded border border-gray-100 dark:border-zinc-700">
+                                {scheduledOrders.filter(o => o.filled).length} / {scheduledOrders.length} Done
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
                         <AnimatePresence mode="popLayout">
-                            {orders.map(order => (
+                            {scheduledOrders.map(order => (
                                 <motion.div
                                     key={order.id}
                                     layout
@@ -646,7 +647,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                                     )}
                                 >
                                     <button 
-                                        onClick={() => handleToggleFill(order.id)}
+                                        onClick={() => handleToggleFill(order)}
                                         className={clsx(
                                             "w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0",
                                             order.filled 
@@ -686,105 +687,102 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                             ))}
                         </AnimatePresence>
                         
-                        {orders.length === 0 && (
+                        {scheduledOrders.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-gray-300 dark:text-zinc-600">
                                 <div className="p-4 bg-gray-50 dark:bg-zinc-800/50 rounded-full mb-3">
                                     <TrendingUp size={24} />
                                 </div>
                                 <p className="text-sm font-medium">Your day is a blank canvas.</p>
-                                <p className="text-xs mt-1">Add tasks or load a template.</p>
+                                <p className="text-xs mt-1">Add tasks or deploy a strategy.</p>
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* 2. Visualizer & Commit */}
-                {!editingStrategy && (
-                    <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6">
-                        <div className="flex justify-between items-end mb-6">
-                            <div>
-                                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Projected End State</div>
-                                <div className={clsx("text-4xl font-light tracking-tighter", percentageChange >= 0 ? "text-primary" : "text-danger")}>
-                                    {percentageChange > 0 ? '+' : ''}{percentageChange.toFixed(2)}%
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-50 dark:bg-zinc-800 px-3 py-1.5 rounded-full">
-                                {percentageChange >= 0 ? <TrendingUp size={14} className="text-primary" /> : <TrendingDown size={14} className="text-danger" />}
-                                24h Timeline
+                <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6">
+                    <div className="flex justify-between items-end mb-6">
+                        <div>
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Projected End State</div>
+                            <div className={clsx("text-4xl font-light tracking-tighter", percentageChange >= 0 ? "text-primary" : "text-danger")}>
+                                {percentageChange > 0 ? '+' : ''}{percentageChange.toFixed(2)}%
                             </div>
                         </div>
-
-                        <div className="h-[350px] w-full relative bg-gray-50 dark:bg-zinc-900 rounded-2xl mb-8 overflow-hidden border border-gray-100 dark:border-zinc-800">
-                            {/* Uses reusable Chart component now */}
-                            <Chart data={chartData} percentageMode={true} hideControls={true} />
-                        </div>
-
-                        {/* Commit Section */}
-                        <div className="bg-gray-50 dark:bg-zinc-800/30 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800">
-                            <div className="flex flex-col md:flex-row gap-4 items-center">
-                                <div className="flex-1 w-full space-y-3">
-                                    <div className="flex gap-6 text-sm">
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <div className={clsx("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", commitMode === 'new' ? "border-primary" : "border-gray-300 dark:border-zinc-600")}>
-                                                {commitMode === 'new' && <div className="w-2 h-2 bg-primary rounded-full" />}
-                                            </div>
-                                            <input 
-                                                type="radio" 
-                                                name="commitMode" 
-                                                checked={commitMode === 'new'} 
-                                                onChange={() => setCommitMode('new')}
-                                                className="hidden"
-                                            />
-                                            <span className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-black dark:group-hover:text-white transition-colors">New Session</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <div className={clsx("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", commitMode === 'merge' ? "border-primary" : "border-gray-300 dark:border-zinc-600")}>
-                                                {commitMode === 'merge' && <div className="w-2 h-2 bg-primary rounded-full" />}
-                                            </div>
-                                            <input 
-                                                type="radio" 
-                                                name="commitMode" 
-                                                checked={commitMode === 'merge'} 
-                                                onChange={() => setCommitMode('merge')}
-                                                className="hidden"
-                                            />
-                                            <span className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-black dark:group-hover:text-white transition-colors">Add to Existing</span>
-                                        </label>
-                                    </div>
-
-                                    {commitMode === 'new' ? (
-                                        <input 
-                                            type="text" 
-                                            value={newSessionName}
-                                            onChange={(e) => setNewSessionName(e.target.value)}
-                                            className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors dark:text-white"
-                                        />
-                                    ) : (
-                                        <select 
-                                            value={targetSessionId}
-                                            onChange={(e) => setTargetSessionId(e.target.value)}
-                                            className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors dark:text-white appearance-none"
-                                        >
-                                            <option value="">Select Session to Append...</option>
-                                            {existingSessions.map(s => (
-                                                <option key={s.id} value={s.id}>{s.name} • {new Date(s.created_at).toLocaleDateString()}</option>
-                                            ))}
-                                        </select>
-                                    )}
-                                </div>
-
-                                <button 
-                                    onClick={handleCommitSession}
-                                    disabled={isCommitting || orders.filter(o => o.filled).length === 0 || (commitMode === 'merge' && !targetSessionId)}
-                                    className="h-12 px-8 bg-gray-900 dark:bg-white text-white dark:text-black rounded-xl font-bold text-sm shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none w-full md:w-auto whitespace-nowrap"
-                                >
-                                    {isCommitting ? <Loader2 className="animate-spin" /> : <FolderPlus size={18} />}
-                                    {isCommitting ? 'Saving...' : 'Commit to Log'}
-                                </button>
-                            </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-50 dark:bg-zinc-800 px-3 py-1.5 rounded-full">
+                            {percentageChange >= 0 ? <TrendingUp size={14} className="text-primary" /> : <TrendingDown size={14} className="text-danger" />}
+                            24h Timeline
                         </div>
                     </div>
-                )}
+
+                    <div className="h-[350px] w-full relative bg-gray-50 dark:bg-zinc-900 rounded-2xl mb-8 overflow-hidden border border-gray-100 dark:border-zinc-800">
+                        <Chart data={chartData} percentageMode={true} hideControls={true} />
+                    </div>
+
+                    {/* Commit Section */}
+                    <div className="bg-gray-50 dark:bg-zinc-800/30 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800">
+                        <div className="flex flex-col md:flex-row gap-4 items-center">
+                            <div className="flex-1 w-full space-y-3">
+                                <div className="flex gap-6 text-sm">
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <div className={clsx("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", commitMode === 'new' ? "border-primary" : "border-gray-300 dark:border-zinc-600")}>
+                                            {commitMode === 'new' && <div className="w-2 h-2 bg-primary rounded-full" />}
+                                        </div>
+                                        <input 
+                                            type="radio" 
+                                            name="commitMode" 
+                                            checked={commitMode === 'new'} 
+                                            onChange={() => setCommitMode('new')}
+                                            className="hidden"
+                                        />
+                                        <span className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-black dark:group-hover:text-white transition-colors">New Session</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <div className={clsx("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", commitMode === 'merge' ? "border-primary" : "border-gray-300 dark:border-zinc-600")}>
+                                            {commitMode === 'merge' && <div className="w-2 h-2 bg-primary rounded-full" />}
+                                        </div>
+                                        <input 
+                                            type="radio" 
+                                            name="commitMode" 
+                                            checked={commitMode === 'merge'} 
+                                            onChange={() => setCommitMode('merge')}
+                                            className="hidden"
+                                        />
+                                        <span className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-black dark:group-hover:text-white transition-colors">Add to Existing</span>
+                                    </label>
+                                </div>
+
+                                {commitMode === 'new' ? (
+                                    <input 
+                                        type="text" 
+                                        value={newSessionName}
+                                        onChange={(e) => setNewSessionName(e.target.value)}
+                                        className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors dark:text-white"
+                                    />
+                                ) : (
+                                    <select 
+                                        value={targetSessionId}
+                                        onChange={(e) => setTargetSessionId(e.target.value)}
+                                        className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors dark:text-white appearance-none"
+                                    >
+                                        <option value="">Select Session to Append...</option>
+                                        {existingSessions.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} • {new Date(s.created_at).toLocaleDateString()}</option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            <button 
+                                onClick={handleCommitSession}
+                                disabled={isCommitting || scheduledOrders.filter(o => o.filled).length === 0 || (commitMode === 'merge' && !targetSessionId)}
+                                className="h-12 px-8 bg-gray-900 dark:bg-white text-white dark:text-black rounded-xl font-bold text-sm shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none w-full md:w-auto whitespace-nowrap"
+                            >
+                                {isCommitting ? <Loader2 className="animate-spin" /> : <FolderPlus size={18} />}
+                                {isCommitting ? 'Saving...' : 'Commit to Log'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>

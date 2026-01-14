@@ -55,6 +55,8 @@ export interface User {
   isPro: boolean;
   hasSeenOnboarding: boolean;
   joinedAt: string;
+  timezone?: string;
+  email_reminders?: boolean;
 }
 
 export interface AuthResponse {
@@ -82,6 +84,18 @@ export interface Order {
   filled: boolean;
   timestamp: number;
   time?: string; // HH:MM 24h format
+}
+
+export interface ScheduledOrder {
+  id: string;
+  user_id: string;
+  scheduled_date: string; // YYYY-MM-DD
+  name: string;
+  impact: number;
+  intensity: number;
+  filled: boolean;
+  time?: string;
+  stickiness?: number; // 0 to 1
 }
 
 export interface Strategy {

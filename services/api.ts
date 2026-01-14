@@ -1,6 +1,6 @@
 
 import { supabase } from '../utils/supabaseClient';
-import { User, AuthResponse, SavedSession, LifeEvent, Strategy, Order } from '../types';
+import { User, AuthResponse, SavedSession, LifeEvent, Strategy, Order, ScheduledOrder } from '../types';
 
 class SupabaseApiService {
   
@@ -13,6 +13,8 @@ class SupabaseApiService {
       isPro: u.user_metadata?.is_pro || false,
       hasSeenOnboarding: u.user_metadata?.has_seen_onboarding || false,
       joinedAt: u.created_at,
+      timezone: u.user_metadata?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      email_reminders: u.user_metadata?.email_reminders || false,
     };
   }
 
@@ -34,6 +36,8 @@ class SupabaseApiService {
   }
 
   async register(name: string, email: string, password: string): Promise<AuthResponse> {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -42,6 +46,8 @@ class SupabaseApiService {
           name: name,
           is_pro: false, // Default status stored in metadata
           has_seen_onboarding: false,
+          timezone: timezone,
+          email_reminders: false,
         },
       },
     });
@@ -103,9 +109,9 @@ class SupabaseApiService {
 
   // --- ACCOUNT SETTINGS ---
 
-  async updateProfile(name: string): Promise<User> {
+  async updateProfile(updates: { name?: string, timezone?: string, email_reminders?: boolean }): Promise<User> {
     const { data, error } = await supabase.auth.updateUser({
-      data: { name }
+      data: updates
     });
     
     if (error) throw new Error(error.message);
@@ -163,6 +169,28 @@ class SupabaseApiService {
     }
     
     await this.logout();
+  }
+
+  // --- EDGE FUNCTIONS ---
+
+  async sendTestSignal(): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const { data, error } = await supabase.functions.invoke('market-signal', {
+        body: { test_user_id: user.id }
+    });
+
+    if (error) {
+        console.error("[API] Edge Function Failed:", error);
+        throw new Error(error.message || "Failed to trigger market signal.");
+    }
+    
+    // Check for application-level error returned in JSON (e.g. from try/catch in function)
+    if (data && data.error) {
+        console.error("[API] Edge Function returned logic error:", data.error);
+        throw new Error(data.error);
+    }
   }
 
   // --- SESSION MANAGEMENT ---
@@ -225,8 +253,6 @@ class SupabaseApiService {
     // We get the user first to log their ID for debugging
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
-
-    console.log(`[API] Deleting session: ${sessionId} for user: ${user.id}`);
     
     // We rely on RLS policies (auth.uid() = user_id) to handle security.
     const { data, error } = await supabase
@@ -235,24 +261,18 @@ class SupabaseApiService {
         .eq('id', sessionId)
         .select();
     
-    console.log('[API] Delete response:', { data, error });
-
     if (error) {
         console.error('[API] Error:', error);
         throw new Error(error.message);
     }
     
     // Check if anything was actually deleted.
-    // If RLS blocks it, data will be empty array []
     if (!data || data.length === 0) {
-        console.error('[API] No rows deleted. RLS mismatch or ID not found.');
         throw new Error("Database permission denied (RLS) or session not found.");
     }
-    
-    console.log('[API] Deletion successful.');
   }
 
-  // --- STRATEGY MANAGEMENT (ORDER BOOK) ---
+  // --- STRATEGY MANAGEMENT (TEMPLATES) ---
 
   async getStrategies(): Promise<Strategy[]> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -264,10 +284,7 @@ class SupabaseApiService {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.warn("Strategy fetch failed (table might not exist)", error);
-      return [];
-    }
+    if (error) return [];
     return data as Strategy[];
   }
 
@@ -299,18 +316,11 @@ class SupabaseApiService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // Sanitize orders
-    const templateOrders = orders.map(o => ({
-        ...o,
-        filled: false
-    }));
+    const templateOrders = orders.map(o => ({ ...o, filled: false }));
 
     const { data, error } = await supabase
         .from('aura_strategies')
-        .update({
-            name,
-            orders: templateOrders
-        })
+        .update({ name, orders: templateOrders })
         .eq('id', id)
         .select()
         .single();
@@ -327,14 +337,128 @@ class SupabaseApiService {
         .from('aura_strategies')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id) // Explicitly adding user check for safety
+        .eq('user_id', user.id)
         .select();
 
     if (error) throw new Error(error.message);
+    if (!data || data.length === 0) throw new Error("Could not delete strategy.");
+  }
 
-    if (!data || data.length === 0) {
-        throw new Error("Could not delete strategy. Permission denied or strategy not found.");
+  // --- SCHEDULED ORDERS (PLANNER & ORDER BOOK) ---
+
+  async getScheduledOrders(date?: string): Promise<ScheduledOrder[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    let query = supabase
+        .from('aura_scheduled_orders')
+        .select('*')
+        .eq('user_id', user.id);
+
+    if (date) {
+        query = query.eq('scheduled_date', date);
     }
+    
+    // Default sort by time
+    const { data, error } = await query.order('time', { ascending: true });
+
+    if (error) {
+        console.error("Scheduled orders fetch error", error);
+        return [];
+    }
+    return data as ScheduledOrder[];
+  }
+
+  async getScheduledOrdersByRange(start: string, end: string): Promise<ScheduledOrder[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+        .from('aura_scheduled_orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('scheduled_date', start)
+        .lte('scheduled_date', end);
+
+    if (error) return [];
+    return data as ScheduledOrder[];
+  }
+
+  async saveScheduledOrder(order: Partial<ScheduledOrder>): Promise<ScheduledOrder> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const payload = {
+        ...order,
+        user_id: user.id
+    };
+
+    let result;
+    if (order.id) {
+        result = await supabase
+            .from('aura_scheduled_orders')
+            .update(payload)
+            .eq('id', order.id)
+            .eq('user_id', user.id)
+            .select()
+            .single();
+    } else {
+        result = await supabase
+            .from('aura_scheduled_orders')
+            .insert(payload)
+            .select()
+            .single();
+    }
+
+    if (result.error) throw new Error(result.error.message);
+    return result.data as ScheduledOrder;
+  }
+
+  async deleteScheduledOrder(id: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const { error } = await supabase
+        .from('aura_scheduled_orders')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+        
+    if (error) throw new Error(error.message);
+  }
+
+  async clearScheduledOrdersForDate(date: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const { error } = await supabase
+        .from('aura_scheduled_orders')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('scheduled_date', date);
+
+    if (error) throw new Error(error.message);
+  }
+
+  async deployStrategyToDate(strategy: Strategy, date: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const bulkPayload = strategy.orders.map(o => ({
+        user_id: user.id,
+        scheduled_date: date,
+        name: o.name,
+        impact: o.impact,
+        intensity: o.intensity,
+        filled: false,
+        time: o.time || null
+    }));
+
+    const { error } = await supabase
+        .from('aura_scheduled_orders')
+        .insert(bulkPayload);
+
+    if (error) throw new Error(error.message);
   }
 }
 

@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Save, Lock, User, AlertCircle, CheckCircle, Globe, Mail, Sparkles, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, Lock, User, AlertCircle, CheckCircle, Globe, Mail, Sparkles, Trash2, AlertTriangle, Clock, Bell, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
 import { Logo } from './Logo';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LanguageToggle } from './LanguageToggle';
 import { api } from '../services/api';
+import clsx from 'clsx';
 
 export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-  const { user, updateName, changePassword, updateEmail } = useAuth();
+  const { user, updateName, changePassword, updateEmail, updatePreferences } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   
   const [name, setName] = useState(user?.name || '');
+  const [timezone, setTimezone] = useState(user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [loadingName, setLoadingName] = useState(false);
   const [msgName, setMsgName] = useState<{type: 'success'|'error', text: string} | null>(null);
 
@@ -21,6 +24,10 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [msgEmail, setMsgEmail] = useState<{type: 'success'|'error', text: string} | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
 
+  // Email Reminders
+  const [reminders, setReminders] = useState(user?.email_reminders || false);
+  const [loadingReminders, setLoadingReminders] = useState(false);
+
   const [oldPass, setOldPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [loadingPass, setLoadingPass] = useState(false);
@@ -28,18 +35,48 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   const [deleting, setDeleting] = useState(false);
 
-  const handleUpdateName = async (e: React.FormEvent) => {
+  // Get supported timezones
+  const timezones = useMemo(() => {
+      try {
+          // Cast to any to avoid TS error
+          return (Intl as any).supportedValuesOf('timeZone');
+      } catch (e) {
+          return [
+              "UTC", "America/New_York", "America/Los_Angeles", "Europe/London", 
+              "Europe/Paris", "Asia/Tokyo", "Asia/Shanghai", "Australia/Sydney"
+          ];
+      }
+  }, []);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoadingName(true);
     setMsgName(null);
     try {
-        await updateName(name);
-        setMsgName({ type: 'success', text: 'Identity updated successfully.' });
+        await updateName(name, timezone);
+        setMsgName({ type: 'success', text: 'Profile updated successfully.' });
     } catch (err: any) {
         setMsgName({ type: 'error', text: err.message });
     } finally {
         setLoadingName(false);
     }
+  };
+
+  const handleToggleReminders = async () => {
+      if (!user?.isPro) {
+          alert("Smart Reminders (including 20-min pre-task alerts) are available for Pro users only.");
+          return;
+      }
+      setLoadingReminders(true);
+      try {
+          const newState = !reminders;
+          await updatePreferences({ email_reminders: newState });
+          setReminders(newState);
+      } catch (e) {
+          alert("Failed to update preferences");
+      } finally {
+          setLoadingReminders(false);
+      }
   };
 
   const handleUpdateEmail = async (e: React.FormEvent) => {
@@ -149,16 +186,38 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <h2 className="text-xl font-semibold text-gray-800 dark:text-white">{t('settings.identity_protocol')}</h2>
                 </div>
                 
-                <form onSubmit={handleUpdateName} className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('settings.display_name')}</label>
-                        <input 
-                            type="text" 
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white"
-                        />
+                <form onSubmit={handleUpdateProfile} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('settings.display_name')}</label>
+                            <input 
+                                type="text" 
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                <Clock size={12} /> Timezone
+                            </label>
+                            <div className="relative">
+                                <select 
+                                    value={timezone}
+                                    onChange={(e) => setTimezone(e.target.value)}
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white font-mono appearance-none"
+                                >
+                                    {timezones.map(tz => (
+                                        <option key={tz} value={tz}>{tz}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                    ▼
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
                     {msgName && (
                         <div className={`p-3 rounded-lg text-xs flex items-center gap-2 ${msgName.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-600' : 'bg-red-50 dark:bg-red-900/20 text-red-600'}`}>
                             {msgName.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
@@ -175,6 +234,49 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </form>
             </div>
 
+            {/* Notifications Section */}
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-6">
+                    <Bell className="text-primary" size={20} />
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Notifications</h2>
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                            Smart Reminders 
+                            {!user?.isPro && <Lock size={12} className="text-gray-400" />}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
+                            Daily Market Brief + 20min alerts before scheduled tasks.
+                        </p>
+                    </div>
+                    <button 
+                        onClick={handleToggleReminders}
+                        disabled={loadingReminders}
+                        className={clsx(
+                            "relative w-12 h-7 rounded-full transition-colors focus:outline-none flex items-center",
+                            reminders ? "bg-primary" : "bg-gray-200 dark:bg-gray-700",
+                            !user?.isPro && "opacity-50 cursor-not-allowed"
+                        )}
+                    >
+                        <motion.div 
+                            className="w-5 h-5 bg-white rounded-full shadow-sm ml-1"
+                            animate={{ x: reminders ? 20 : 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        />
+                    </button>
+                </div>
+                {!user?.isPro && (
+                    <div className="mt-4 bg-gray-50 dark:bg-gray-700/30 p-3 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-3 text-xs">
+                        <div className="p-1.5 bg-white dark:bg-gray-800 rounded-lg text-yellow-500 shadow-sm">
+                            <Crown size={14} />
+                        </div>
+                        <span className="text-gray-600 dark:text-gray-400">Upgrade to <strong>Aura Pro</strong> to enable email reminders.</span>
+                    </div>
+                )}
+            </div>
+
             {/* Email Section */}
             <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center gap-3 mb-6">
@@ -182,7 +284,7 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <h2 className="text-xl font-semibold text-gray-800 dark:text-white">{t('settings.email_protocol')}</h2>
                 </div>
                 
-                <form onSubmit={handleUpdateEmail} className="space-y-4">
+                <form onSubmit={handleUpdateEmail} className="space-y-6">
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('settings.current_email')}</label>
                         <div className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono">

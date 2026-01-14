@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '../types';
 import { api } from '../services/api';
@@ -11,7 +12,8 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   upgradeSubscription: () => Promise<void>;
-  updateName: (name: string) => Promise<void>;
+  updateName: (name: string, timezone?: string) => Promise<void>;
+  updatePreferences: (prefs: { email_reminders?: boolean }) => Promise<void>;
   updateEmail: (email: string) => Promise<void>;
   changePassword: (oldPass: string, newPass: string) => Promise<void>;
   completeOnboarding: () => Promise<void>;
@@ -51,6 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isPro: u.user_metadata?.is_pro || false,
         hasSeenOnboarding: u.user_metadata?.has_seen_onboarding || false,
         joinedAt: u.created_at,
+        timezone: u.user_metadata?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        email_reminders: u.user_metadata?.email_reminders || false,
         });
     } else {
         setUser(null);
@@ -89,10 +93,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(updatedUser);
   };
 
-  const updateName = async (name: string) => {
-    const updatedUser = await api.updateProfile(name);
+  const updateName = async (name: string, timezone?: string) => {
+    const updatedUser = await api.updateProfile({ name, timezone });
     setUser(updatedUser);
   };
+
+  const updatePreferences = async (prefs: { email_reminders?: boolean }) => {
+      const updatedUser = await api.updateProfile(prefs);
+      setUser(updatedUser);
+  }
 
   const updateEmail = async (email: string) => {
       await api.updateEmail(email);
@@ -112,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         upgradeSubscription,
         updateName,
+        updatePreferences,
         updateEmail,
         changePassword,
         completeOnboarding

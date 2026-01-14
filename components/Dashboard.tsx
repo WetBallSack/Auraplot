@@ -1,8 +1,9 @@
 
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from './Logo';
-import { Plus, History, LogOut, TrendingUp, Crown, Lock, Calendar, Trash2, AlertCircle, Settings, Zap, Activity, Loader2, List, CheckSquare } from 'lucide-react';
+import { Plus, History, LogOut, TrendingUp, Crown, Lock, Calendar, Trash2, AlertCircle, Settings, Zap, Activity, Loader2, List, CheckSquare, Grid } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +12,7 @@ import { SavedSession } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { OnboardingTour } from './OnboardingTour';
 import { OrderBook } from './OrderBook';
+import { Planner } from './Planner';
 import clsx from 'clsx';
 
 export const Dashboard: React.FC<{ 
@@ -30,7 +32,7 @@ export const Dashboard: React.FC<{
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   
   // New Tab State
-  const [activeTab, setActiveTab] = useState<'history' | 'orderbook'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'orderbook' | 'planner'>('history');
   
   const firstName = user?.name.split(' ')[0] || 'Traveler';
   const isPro = user?.isPro || false;
@@ -202,6 +204,17 @@ export const Dashboard: React.FC<{
                     )}
                 >
                     <CheckSquare size={16} /> Live Checklist
+                </button>
+                <button
+                    onClick={() => setActiveTab('planner')}
+                    className={clsx(
+                        "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
+                        activeTab === 'planner' 
+                            ? "bg-white dark:bg-gray-700 text-accent dark:text-white shadow-sm" 
+                            : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    )}
+                >
+                    <Grid size={16} /> Planner
                 </button>
             </div>
         </div>
@@ -474,6 +487,18 @@ export const Dashboard: React.FC<{
                     exit={{ opacity: 0, x: -20 }}
                  >
                      <OrderBook existingSessions={sessions} onRefreshHistory={fetchSessions} />
+                 </motion.div>
+            )}
+
+             {/* 3. PLANNER VIEW */}
+             {activeTab === 'planner' && (
+                 <motion.div
+                    key="planner"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                 >
+                     <Planner />
                  </motion.div>
             )}
 
