@@ -1,4 +1,5 @@
 
+
 export const translations = {
   en: {
     landing: {
@@ -88,6 +89,31 @@ export const translations = {
         pro_active: "Pro Active",
         history_locked: "History Locked",
         upgrade_history: "Upgrade to Aura Pro to access your full existence history and patterns.",
+    },
+    planner: {
+        title: "Planner",
+        no_orders: "No orders scheduled.",
+        slots_used: "Daily Slots Used",
+        deploy_strategy: "Deploy Strategy",
+        select_template: "Select Template",
+        template_hint: "Create reusable templates in the 'Live Checklist' tab to quickly populate days here.",
+        no_templates: "No templates found.",
+        task_name: "Task Name",
+        drain: "Drain (-10)",
+        boost: "Boost (+10)",
+        intensity: "Intensity",
+        stickiness: "Stickiness",
+        time: "Time",
+        limit_reached: "Limit Reached",
+        add_to_date: "Add to",
+        hint: "Items added here will appear in your Live Checklist on the scheduled day.",
+        select_date: "Select a date to plan your market moves.",
+        days_short: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        free_limit_alert: "Free Limit Reached: Upgrade to Aura Pro to add more than 7 items per day.",
+        batch_limit_alert: "Cannot deploy: This would exceed the 7-item daily limit for free accounts.",
+        failed_add: "Failed to add item",
+        failed_delete: "Failed to delete",
+        failed_deploy: "Failed to deploy strategy"
     },
     settings: {
         title: "Settings",
@@ -259,6 +285,31 @@ export const translations = {
         pro_active: "Pro 已激活",
         history_locked: "历史记录已锁定",
         upgrade_history: "升级到 Aura Pro 以访问完整的存在历史和模式。",
+    },
+    planner: {
+        title: "规划",
+        no_orders: "暂无预定订单。",
+        slots_used: "每日额度已用",
+        deploy_strategy: "部署策略",
+        select_template: "选择模板",
+        template_hint: "在“实时清单”选项卡中创建可重用的模板，以便在此处快速填充日期。",
+        no_templates: "未找到模板。",
+        task_name: "任务名称",
+        drain: "消耗 (-10)",
+        boost: "提升 (+10)",
+        intensity: "强度",
+        stickiness: "粘性",
+        time: "时间",
+        limit_reached: "达到限额",
+        add_to_date: "添加到",
+        hint: "在此处添加的项目将显示在预定日期的实时清单中。",
+        select_date: "选择一个日期来规划您的市场行动。",
+        days_short: ['日', '一', '二', '三', '四', '五', '六'],
+        free_limit_alert: "达到免费限额：升级到 Aura Pro 每天添加超过 7 个项目。",
+        batch_limit_alert: "无法部署：这将超过免费帐户的 7 项每日限制。",
+        failed_add: "添加项目失败",
+        failed_delete: "删除失败",
+        failed_deploy: "部署策略失败"
     },
     settings: {
         title: "设置",
