@@ -113,7 +113,8 @@ export const translations = {
         batch_limit_alert: "Cannot deploy: This would exceed the 7-item daily limit for free accounts.",
         failed_add: "Failed to add item",
         failed_delete: "Failed to delete",
-        failed_deploy: "Failed to deploy strategy"
+        failed_deploy: "Failed to deploy strategy",
+        timezone_hint: "Scheduling in"
     },
     settings: {
         title: "Settings",
@@ -135,6 +136,9 @@ export const translations = {
         change_email: "Change Email",
         email_sent: "Verification Link Sent",
         check_email_link: "We sent a confirmation link to your new email address. Please click it to finalize the protocol update.",
+        test_notification: "Test Delivery",
+        test_sent: "Signal sent to neural net. Check logs/inbox.",
+        test_failed: "Signal failed to transmit."
     },
     payment: {
         title: "Secure Checkout",
@@ -257,7 +261,7 @@ export const translations = {
       waiting_signal: "等待信号...",
       update_password: "更新通行密钥",
       set_new_pass: "使用新通行密钥保护您的终端。",
-      new_pass: "新通行密钥",
+      new_pass: "New Passkey",
       confirm_pass: "确认通行密钥",
       saving: "覆盖中...",
       save_pass: "设置通行密钥",
@@ -309,7 +313,8 @@ export const translations = {
         batch_limit_alert: "无法部署：这将超过免费帐户的 7 项每日限制。",
         failed_add: "添加项目失败",
         failed_delete: "删除失败",
-        failed_deploy: "部署策略失败"
+        failed_deploy: "部署策略失败",
+        timezone_hint: "当前时区"
     },
     settings: {
         title: "设置",
@@ -331,6 +336,9 @@ export const translations = {
         change_email: "更改邮箱",
         email_sent: "验证链接已发送",
         check_email_link: "我们已向您的新邮箱发送确认链接。请点击以完成协议更新。",
+        test_notification: "测试发送",
+        test_sent: "信号已发送，请检查日志/收件箱。",
+        test_failed: "信号发送失败。"
     },
     payment: {
         title: "安全结账",

@@ -1,4 +1,5 @@
 
+
 import { supabase } from '../utils/supabaseClient';
 import { User, AuthResponse, SavedSession, LifeEvent, Strategy, Order, ScheduledOrder } from '../types';
 
@@ -190,6 +191,27 @@ class SupabaseApiService {
     if (data && data.error) {
         console.error("[API] Edge Function returned logic error:", data.error);
         throw new Error(data.error);
+    }
+  }
+
+  async triggerRemindersCheck(): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // Force trigger the check-reminders function for debugging
+    const { data, error } = await supabase.functions.invoke('check-reminders', {
+        body: { test_user_id: user.id, debug: true } 
+    });
+
+    if (error) {
+        console.error("[API] Reminder Check Failed:", error);
+        // Attempt to parse the error message if it's buried in context
+        // But usually non-2xx means the edge function crashed (500) or was not found (404)
+        throw new Error("Server Error: Check Edge Function Logs in Supabase Dashboard.");
+    }
+
+    if (data && !data.success) {
+        throw new Error(`Remote Logic Error: ${data.error || 'Unknown'}`);
     }
   }
 

@@ -401,8 +401,9 @@ export const Planner: React.FC = () => {
                                 </div>
 
                                 <div className="mb-3">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1 mb-1">
-                                        <Clock size={10} /> {t('planner.time')}
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-between mb-1">
+                                        <span className="flex items-center gap-1"><Clock size={10} /> {t('planner.time')}</span>
+                                        <span className="text-[8px] text-primary">{t('planner.timezone_hint')}: {user?.timezone?.split('/')[1] || 'Local'}</span>
                                     </label>
                                     <div className="relative">
                                         <input 

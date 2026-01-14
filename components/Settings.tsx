@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Save, Lock, User, AlertCircle, CheckCircle, Globe, Mail, Sparkles, Trash2, AlertTriangle, Clock, Bell, Crown } from 'lucide-react';
@@ -251,21 +253,24 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             Daily Market Brief + 20min alerts before scheduled tasks.
                         </p>
                     </div>
-                    <button 
-                        onClick={handleToggleReminders}
-                        disabled={loadingReminders}
-                        className={clsx(
-                            "relative w-12 h-7 rounded-full transition-colors focus:outline-none flex items-center",
-                            reminders ? "bg-primary" : "bg-gray-200 dark:bg-gray-700",
-                            !user?.isPro && "opacity-50 cursor-not-allowed"
-                        )}
-                    >
-                        <motion.div 
-                            className="w-5 h-5 bg-white rounded-full shadow-sm ml-1"
-                            animate={{ x: reminders ? 20 : 0 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                        />
-                    </button>
+                    
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={handleToggleReminders}
+                            disabled={loadingReminders}
+                            className={clsx(
+                                "relative w-12 h-7 rounded-full transition-colors focus:outline-none flex items-center",
+                                reminders ? "bg-primary" : "bg-gray-200 dark:bg-gray-700",
+                                !user?.isPro && "opacity-50 cursor-not-allowed"
+                            )}
+                        >
+                            <motion.div 
+                                className="w-5 h-5 bg-white rounded-full shadow-sm ml-1"
+                                animate={{ x: reminders ? 20 : 0 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            />
+                        </button>
+                    </div>
                 </div>
                 {!user?.isPro && (
                     <div className="mt-4 bg-gray-50 dark:bg-gray-700/30 p-3 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-3 text-xs">
