@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Wizard } from './components/Wizard';
 import { Landing } from './components/Landing';
 import { Login } from './components/Login';
@@ -275,6 +276,7 @@ const AppContent: React.FC = () => {
             </div>
         </footer>
       )}
+      <SpeedInsights />
     </div>
   );
 }
