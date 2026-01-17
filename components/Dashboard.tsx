@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from './Logo';
@@ -36,6 +35,21 @@ export const Dashboard: React.FC<{
   
   const firstName = user?.name.split(' ')[0] || 'Traveler';
   const isPro = user?.isPro || false;
+
+  // Auto-sync timezone on mount to ensure backend crons have valid data
+  useEffect(() => {
+    const syncTimezone = async () => {
+        if (!user) return;
+        try {
+            const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            // This ensures the database user_metadata.timezone is never null for active users
+            await api.updateProfile({ timezone: browserTz });
+        } catch (e) {
+            console.error("Timezone auto-sync failed", e);
+        }
+    };
+    syncTimezone();
+  }, []);
 
   const fetchSessions = async () => {
     setLoadingHistory(true);

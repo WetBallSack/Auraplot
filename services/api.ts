@@ -1,5 +1,4 @@
 
-
 import { supabase } from '../utils/supabaseClient';
 import { User, AuthResponse, SavedSession, LifeEvent, Strategy, Order, ScheduledOrder } from '../types';
 
@@ -76,15 +75,25 @@ class SupabaseApiService {
   }
 
   async upgradeToPro(userId: string): Promise<User> {
-    // We update the user metadata. 
-    const { data, error } = await supabase.auth.updateUser({
-      data: { is_pro: true }
-    });
+    // WEBHOOK ARCHITECTURE:
+    // The payment provider (Helio) notifies Supabase directly via Webhook.
+    // This function checks if that update has arrived yet.
     
-    if (error) throw new Error(error.message);
-    if (!data.user) throw new Error('Failed to update user');
+    // 1. Force a refresh of user data from the server
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+        throw new Error("Connection failed. Please check your internet.");
+    }
 
-    return this.mapUser(data.user);
+    // 2. Check metadata to see if the webhook updated the status
+    if (user.user_metadata?.is_pro === true) {
+        return this.mapUser(user);
+    }
+
+    // 3. If not yet updated, throw error so UI stays in "Waiting" state
+    // This allows the UI to keep polling or asking the user to wait
+    throw new Error("Payment is confirming on the blockchain. This usually takes 10-30 seconds. Please wait...");
   }
 
   async completeOnboarding(): Promise<User> {
@@ -197,6 +206,8 @@ class SupabaseApiService {
   async triggerRemindersCheck(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
+    
+    console.log("[API] Triggering debug reminder check...");
 
     // Force trigger the check-reminders function for debugging
     const { data, error } = await supabase.functions.invoke('check-reminders', {
@@ -204,15 +215,18 @@ class SupabaseApiService {
     });
 
     if (error) {
-        console.error("[API] Reminder Check Failed:", error);
-        // Attempt to parse the error message if it's buried in context
-        // But usually non-2xx means the edge function crashed (500) or was not found (404)
-        throw new Error("Server Error: Check Edge Function Logs in Supabase Dashboard.");
+        console.error("[API] Reminder Invoke Error:", error);
+        // Usually non-2xx means the edge function crashed (500)
+        throw new Error(`Server Error: ${error.message}. Check SQL logs.`);
     }
 
     if (data && !data.success) {
-        throw new Error(`Remote Logic Error: ${data.error || 'Unknown'}`);
+        // This catches the explicit error message from the Edge Function
+        console.error("[API] Reminder Logic Error:", data);
+        throw new Error(`Remote Logic Error: ${data.error || JSON.stringify(data)}`);
     }
+    
+    console.log("[API] Reminder Check Result:", data);
   }
 
   // --- SESSION MANAGEMENT ---

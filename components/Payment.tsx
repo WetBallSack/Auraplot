@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shield, Check, Loader2, Lock, ExternalLink, Clock, Wallet, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Shield, Check, Loader2, Lock, ExternalLink, Clock, Wallet, ArrowRight, RefreshCw, Mail, AlertTriangle, HelpCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LanguageToggle } from './LanguageToggle';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PaymentProps {
   onBack: () => void;
@@ -13,18 +14,53 @@ interface PaymentProps {
 
 export const Payment: React.FC<PaymentProps> = ({ onBack, onSuccess, plan }) => {
   const { t } = useLanguage();
-  const [status, setStatus] = useState<'idle' | 'waiting'>('idle');
+  const { user } = useAuth();
+  const [status, setStatus] = useState<'idle' | 'waiting' | 'verifying'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState(0);
 
   // External Payment Links
-  const PAYMENT_URLS = {
-      monthly: "https://moonpay.hel.io/pay/694baa5fb905fbae51d526b2",
-      lifetime: "https://moonpay.hel.io/pay/6960eb543349f9e867b4a401"
+  const BASE_URLS = {
+      monthly: "https://moonpay.hel.io/pay/696b1bdc333e6a54f3d7c7bd",
+      lifetime: "https://moonpay.hel.io/pay/696b1c41bfa1974cc3e12a10"
   };
+  
   const BINANCE_URL = "https://www.bmwweb.ac/referral/earn-together/refer2earn-usdc/claim?hl=en&ref=GRO_28502_BD3FV&utm_source=default";
 
   const handlePayClick = () => {
-    window.open(PAYMENT_URLS[plan], '_blank');
+    if (!user) return;
+
+    // Construct URL with Metadata
+    const baseUrl = BASE_URLS[plan];
+    const params = new URLSearchParams({
+        customerEmail: user.email,
+        metadata: JSON.stringify({ userId: user.id, plan: plan })
+    });
+
+    window.open(`${baseUrl}?${params.toString()}`, '_blank');
     setStatus('waiting');
+    setError(null);
+    setAttempts(0);
+  };
+
+  const handleVerify = async () => {
+      setStatus('verifying');
+      setError(null);
+      setAttempts(prev => prev + 1);
+      
+      try {
+          await onSuccess(); 
+      } catch (e: any) {
+          console.error(e);
+          setStatus('waiting');
+          
+          // Custom error messaging based on attempts
+          if (attempts >= 1) {
+             setError("We cannot detect your payment automatically yet. This can happen if the blockchain is congested or the connection timed out.");
+          } else {
+             setError(e.message || "Payment not yet confirmed. Please wait a moment and try again.");
+          }
+      }
   };
 
   const priceLabel = plan === 'monthly' ? '$1.20' : '$10.00';
@@ -117,27 +153,71 @@ export const Payment: React.FC<PaymentProps> = ({ onBack, onSuccess, plan }) => 
                     </>
                 )}
 
-                {status === 'waiting' && (
+                {(status === 'waiting' || status === 'verifying') && (
                     <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center text-center gap-4"
+                        className="flex flex-col items-center text-center gap-4 w-full"
                     >
                          <div className="w-16 h-16 bg-yellow-500/20 text-yellow-500 rounded-full flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                            <Clock size={32} />
+                            {status === 'verifying' ? <Loader2 size={32} className="animate-spin" /> : <Clock size={32} />}
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-white mb-1">{t('payment.manual_verify_title')}</h3>
+                            <h3 className="text-lg font-bold text-white mb-1">
+                                {status === 'verifying' ? t('payment.upgrading') : t('payment.confirm_payment')}
+                            </h3>
                             <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">
-                                {t('payment.manual_verify_text')}
+                                Waiting for blockchain confirmation. Once you've paid, click verify below.
                             </p>
                         </div>
-                        <button 
-                            onClick={onBack}
-                            className="mt-2 text-xs font-bold text-primary hover:text-white transition-colors uppercase tracking-widest border-b border-transparent hover:border-white pb-0.5"
-                        >
-                            {t('payment.return_dash')}
-                        </button>
+                        
+                        {error && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="w-full space-y-3"
+                            >
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-left">
+                                    <div className="flex gap-2 items-start text-red-400 mb-2">
+                                        <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                        <span className="text-xs font-bold">Verification Failed</span>
+                                    </div>
+                                    <p className="text-xs text-red-300 leading-relaxed">
+                                        {error}
+                                    </p>
+                                </div>
+
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between text-left group hover:bg-white/10 transition-colors cursor-pointer" onClick={() => window.location.href = `mailto:support@auraplot.site?subject=Payment%20Verification%20Issue&body=User%20ID:%20${user?.id}%0AEmail:%20${user?.email}%0APlan:%20${plan}%0A%0AHello,%20I%20have%20paid%20but%20my%20account%20is%20not%20updating.`}>
+                                    <div className="flex gap-3 items-center">
+                                        <div className="bg-white/10 p-2 rounded-lg">
+                                            <Mail size={16} className="text-white"/>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-white">I have already paid</div>
+                                            <div className="text-[10px] text-gray-400">Tap to contact support instantly</div>
+                                        </div>
+                                    </div>
+                                    <ArrowRight size={14} className="text-gray-500 group-hover:text-white transition-colors" />
+                                </div>
+                            </motion.div>
+                        )}
+
+                        <div className="flex flex-col w-full gap-2 mt-2">
+                            <button 
+                                onClick={handleVerify}
+                                disabled={status === 'verifying'}
+                                className="w-full bg-primary hover:bg-primary-dark text-black font-bold h-12 rounded-xl transition-colors flex items-center justify-center gap-2"
+                            >
+                                {status === 'verifying' ? 'Verifying...' : 'Verify Transaction'}
+                                {!status && <RefreshCw size={16} />}
+                            </button>
+                            <button 
+                                onClick={onBack}
+                                className="text-xs font-bold text-gray-500 hover:text-white transition-colors py-2"
+                            >
+                                Cancel / Return
+                            </button>
+                        </div>
                     </motion.div>
                 )}
              </div>

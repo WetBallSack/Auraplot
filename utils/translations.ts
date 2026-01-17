@@ -1,5 +1,4 @@
 
-
 export const translations = {
   en: {
     landing: {
@@ -23,13 +22,24 @@ export const translations = {
       sim_intensity: "Intensity",
       sim_bullish: "Bullish",
       sim_bearish: "Bearish",
-      features_title: "Market Mechanics",
+      
+      // Feature Slides
+      analysis_title: "Market Mechanics",
       feat_volatility: "Personal Volatility",
       feat_volatility_desc: "Visualize emotional swings to find your support levels.",
       feat_biomarket: "Bio-Market Analysis",
       feat_biomarket_desc: "Use RSI (Relative Satisfaction Index) to spot burnout before you liquidate.",
       feat_logs: "Automated Trade Logs",
       feat_logs_desc: "Your habits are investments. See which ones provide the best long-term dividends.",
+      
+      execution_title: "Strategy Execution",
+      feat_checklist: "Live Market Checklist",
+      feat_checklist_desc: "Execute your daily strategy with a trading-terminal interface.",
+      feat_planner: "Strategic Planner",
+      feat_planner_desc: "Schedule future moves. Your life is a series of calculated trades.",
+      feat_reminders: "Smart Reminders",
+      feat_reminders_desc: "Get pre-market briefs and 20min task alerts via email.",
+      
       proof_title: "Proof of Growth",
       proof_desc: "Data doesn't lie. See how 500+ events across 12 months reveal the true trajectory of your career and health.",
       proof_join: "Join 1,000+ users sharing their Life ROI.",
@@ -223,13 +233,23 @@ export const translations = {
       sim_intensity: "强度",
       sim_bullish: "看涨",
       sim_bearish: "看跌",
-      features_title: "市场机制",
+      
+      analysis_title: "市场机制",
       feat_volatility: "个人波动率",
       feat_volatility_desc: "可视化情绪波动以找到您的支撑位。",
       feat_biomarket: "生物市场分析",
       feat_biomarket_desc: "使用 RSI（相对满意度指数）在爆仓前发现倦怠。",
       feat_logs: "自动交易日志",
       feat_logs_desc: "您的习惯就是投资。看看哪些能提供最好的长期红利。",
+      
+      execution_title: "策略执行",
+      feat_checklist: "实时市场清单",
+      feat_checklist_desc: "使用交易终端界面执行您的每日策略。",
+      feat_planner: "战略规划",
+      feat_planner_desc: "规划未来的行动。您的生活是一系列经过计算的交易。",
+      feat_reminders: "智能提醒",
+      feat_reminders_desc: "通过电子邮件获取盘前简报和 20 分钟任务提醒。",
+      
       proof_title: "增长证明",
       proof_desc: "数据不会撒谎。查看 12 个月内的 500 多个事件如何揭示您的职业和健康轨迹。",
       proof_join: "加入 1000+ 用户分享他们的生活 ROI。",

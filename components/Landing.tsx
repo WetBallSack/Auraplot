@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
-import { Crown, TrendingUp, Activity, BarChart2, Shield, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
+import { Crown, TrendingUp, Activity, BarChart2, Shield, ArrowUpRight, ArrowDownRight, ChevronDown, CheckSquare, Calendar, Bell } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import clsx from 'clsx';
 
@@ -98,17 +99,11 @@ const InteractiveSimulator = ({ onInteract }: { onInteract: () => void }) => {
     );
 };
 
-const FeaturesTicker = () => {
-    const { t } = useLanguage();
-    const features = [
-        { icon: Activity, title: t('landing.feat_volatility'), desc: t('landing.feat_volatility_desc') },
-        { icon: TrendingUp, title: t('landing.feat_biomarket'), desc: t('landing.feat_biomarket_desc') },
-        { icon: BarChart2, title: t('landing.feat_logs'), desc: t('landing.feat_logs_desc') },
-    ];
-
+// Generic Feature Slide Component
+const FeatureSlide = ({ title, features }: { title: string, features: { icon: any, title: string, desc: string }[] }) => {
     return (
         <div className="w-full max-w-5xl allow-internal-scroll overflow-y-auto no-scrollbar max-h-[55vh] md:max-h-none md:overflow-visible px-2 pb-4">
-            <h2 className="text-2xl md:text-4xl font-light text-center mb-8 md:mb-16 text-gray-900 dark:text-white tracking-tight">{t('landing.features_title')}</h2>
+            <h2 className="text-2xl md:text-4xl font-light text-center mb-8 md:mb-16 text-gray-900 dark:text-white tracking-tight">{title}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {features.map((feat, i) => (
                     <motion.div 
@@ -241,8 +236,9 @@ export const Landing: React.FC<{ onEnter: () => void, onPricing: () => void, onT
     { id: 0, type: 'hero' },
     { id: 1, type: 'pain-killer' },
     { id: 2, type: 'simulator' },
-    { id: 3, type: 'features' },
-    { id: 4, type: 'proof' },
+    { id: 3, type: 'features-analysis' },
+    { id: 4, type: 'features-execution' },
+    { id: 5, type: 'proof' },
   ];
 
   // Lock Body Scroll on Mount
@@ -402,9 +398,21 @@ export const Landing: React.FC<{ onEnter: () => void, onPricing: () => void, onT
             );
         case 2: // Simulator
             return <InteractiveSimulator onInteract={() => setIsHovering(true)} />;
-        case 3: // Features
-            return <FeaturesTicker />;
-        case 4: // Proof
+        case 3: // Features: Analysis
+            const analysisFeatures = [
+                { icon: Activity, title: t('landing.feat_volatility'), desc: t('landing.feat_volatility_desc') },
+                { icon: TrendingUp, title: t('landing.feat_biomarket'), desc: t('landing.feat_biomarket_desc') },
+                { icon: BarChart2, title: t('landing.feat_logs'), desc: t('landing.feat_logs_desc') },
+            ];
+            return <FeatureSlide title={t('landing.analysis_title')} features={analysisFeatures} />;
+        case 4: // Features: Execution
+            const executionFeatures = [
+                { icon: CheckSquare, title: t('landing.feat_checklist'), desc: t('landing.feat_checklist_desc') },
+                { icon: Calendar, title: t('landing.feat_planner'), desc: t('landing.feat_planner_desc') },
+                { icon: Bell, title: t('landing.feat_reminders'), desc: t('landing.feat_reminders_desc') },
+            ];
+            return <FeatureSlide title={t('landing.execution_title')} features={executionFeatures} />;
+        case 5: // Proof
             return <ProofOfGrowth />;
         default:
             return null;

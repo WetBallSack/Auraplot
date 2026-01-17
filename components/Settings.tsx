@@ -1,7 +1,7 @@
 
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Save, Lock, User, AlertCircle, CheckCircle, Globe, Mail, Sparkles, Trash2, AlertTriangle, Clock, Bell, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,7 +27,7 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [showEmailModal, setShowEmailModal] = useState(false);
 
   // Email Reminders
-  const [reminders, setReminders] = useState(user?.email_reminders || false);
+  const [reminders, setReminders] = useState(false);
   const [loadingReminders, setLoadingReminders] = useState(false);
 
   const [oldPass, setOldPass] = useState('');
@@ -36,6 +36,28 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [msgPass, setMsgPass] = useState<{type: 'success'|'error', text: string} | null>(null);
 
   const [deleting, setDeleting] = useState(false);
+
+  // Sync state with user context when it loads
+  useEffect(() => {
+    if (user) {
+        setReminders(user.email_reminders || false);
+        setName(user.name);
+        // If user has a timezone saved, use it, otherwise default to system
+        if (user.timezone) setTimezone(user.timezone);
+    }
+  }, [user]);
+
+  // Force a quiet profile refresh on mount to ensure metadata (is_pro, reminders) is in sync with DB
+  useEffect(() => {
+    const refreshProfile = async () => {
+        try {
+            await api.getProfile();
+        } catch (e) {
+            console.error("Silent refresh failed", e);
+        }
+    };
+    refreshProfile();
+  }, []);
 
   // Get supported timezones
   const timezones = useMemo(() => {
@@ -72,10 +94,14 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       setLoadingReminders(true);
       try {
           const newState = !reminders;
+          // Explicitly send boolean
           await updatePreferences({ email_reminders: newState });
           setReminders(newState);
       } catch (e) {
-          alert("Failed to update preferences");
+          console.error(e);
+          alert("Failed to update preferences. Check network connection.");
+          // Revert visual state if failed
+          setReminders(!reminders);
       } finally {
           setLoadingReminders(false);
       }
