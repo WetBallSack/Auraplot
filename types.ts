@@ -1,4 +1,5 @@
 
+
 export interface LifeEvent {
   id: string;
   name: string;
@@ -57,6 +58,7 @@ export interface User {
   joinedAt: string;
   timezone?: string;
   email_reminders?: boolean;
+  pro_expires_at?: string;
 }
 
 export interface AuthResponse {

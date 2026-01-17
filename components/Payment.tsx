@@ -30,14 +30,25 @@ export const Payment: React.FC<PaymentProps> = ({ onBack, onSuccess, plan }) => 
   const handlePayClick = () => {
     if (!user) return;
 
-    // Construct URL with Metadata
-    const baseUrl = BASE_URLS[plan];
+    // Use "Shotgun Approach" for params: Send data in multiple ways to ensure Helio passes it to webhook
     const params = new URLSearchParams({
+        // 1. Email pre-fill (Critical for backend fallback)
         customerEmail: user.email,
+        
+        // 2. Custom param (often passed through as payload.custom_userId)
+        custom_userId: user.id,
+        
+        // 3. Direct param (sometimes flattened)
+        userId: user.id,
+        plan: plan,
+
+        // 4. Metadata JSON (Standard way, but sometimes buggy in Pay Links)
         metadata: JSON.stringify({ userId: user.id, plan: plan })
     });
 
+    const baseUrl = BASE_URLS[plan];
     window.open(`${baseUrl}?${params.toString()}`, '_blank');
+    
     setStatus('waiting');
     setError(null);
     setAttempts(0);
@@ -56,9 +67,9 @@ export const Payment: React.FC<PaymentProps> = ({ onBack, onSuccess, plan }) => 
           
           // Custom error messaging based on attempts
           if (attempts >= 1) {
-             setError("We cannot detect your payment automatically yet. This can happen if the blockchain is congested or the connection timed out.");
+             setError("Signal not received yet. The payment network might be congested (takes 10-30s). Please keep retrying.");
           } else {
-             setError(e.message || "Payment not yet confirmed. Please wait a moment and try again.");
+             setError(e.message || "Payment verification pending. Please wait a moment and try again.");
           }
       }
   };
@@ -167,7 +178,7 @@ export const Payment: React.FC<PaymentProps> = ({ onBack, onSuccess, plan }) => 
                                 {status === 'verifying' ? t('payment.upgrading') : t('payment.confirm_payment')}
                             </h3>
                             <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">
-                                Waiting for blockchain confirmation. Once you've paid, click verify below.
+                                Waiting for blockchain confirmation from Helio.
                             </p>
                         </div>
                         
@@ -180,7 +191,7 @@ export const Payment: React.FC<PaymentProps> = ({ onBack, onSuccess, plan }) => 
                                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-left">
                                     <div className="flex gap-2 items-start text-red-400 mb-2">
                                         <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-                                        <span className="text-xs font-bold">Verification Failed</span>
+                                        <span className="text-xs font-bold">Signal Not Found</span>
                                     </div>
                                     <p className="text-xs text-red-300 leading-relaxed">
                                         {error}

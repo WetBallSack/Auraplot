@@ -1,4 +1,5 @@
 
+
 import { supabase } from '../utils/supabaseClient';
 import { User, AuthResponse, SavedSession, LifeEvent, Strategy, Order, ScheduledOrder } from '../types';
 
@@ -6,15 +7,26 @@ class SupabaseApiService {
   
   // Helper to map Supabase user format to our App's User interface
   private mapUser(u: any): User {
+    const expiresAt = u.user_metadata?.pro_expires_at;
+    let isPro = u.user_metadata?.is_pro || false;
+
+    // Logic: If there is an expiration date and it is in the past, revoke Pro
+    if (isPro && expiresAt) {
+        if (new Date(expiresAt) < new Date()) {
+            isPro = false;
+        }
+    }
+
     return {
       id: u.id,
       name: u.user_metadata?.name || u.email?.split('@')[0] || 'Traveler',
       email: u.email || '',
-      isPro: u.user_metadata?.is_pro || false,
+      isPro: isPro,
       hasSeenOnboarding: u.user_metadata?.has_seen_onboarding || false,
       joinedAt: u.created_at,
       timezone: u.user_metadata?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       email_reminders: u.user_metadata?.email_reminders || false,
+      pro_expires_at: expiresAt,
     };
   }
 
@@ -79,20 +91,25 @@ class SupabaseApiService {
     // The payment provider (Helio) notifies Supabase directly via Webhook.
     // This function checks if that update has arrived yet.
     
-    // 1. Force a refresh of user data from the server
+    // 1. Force a refresh of the session to ensure latest metadata
+    await supabase.auth.refreshSession();
+    
+    // 2. Fetch user data
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
         throw new Error("Connection failed. Please check your internet.");
     }
 
-    // 2. Check metadata to see if the webhook updated the status
-    if (user.user_metadata?.is_pro === true) {
-        return this.mapUser(user);
+    // 3. Check metadata
+    // We map user to apply expiration logic. If mapUser returns isPro=true, it means payment is verified AND active.
+    const mappedUser = this.mapUser(user);
+
+    if (mappedUser.isPro) {
+        return mappedUser;
     }
 
-    // 3. If not yet updated, throw error so UI stays in "Waiting" state
-    // This allows the UI to keep polling or asking the user to wait
+    // 4. If not yet updated, throw error so UI stays in "Waiting" state
     throw new Error("Payment is confirming on the blockchain. This usually takes 10-30 seconds. Please wait...");
   }
 
@@ -179,54 +196,6 @@ class SupabaseApiService {
     }
     
     await this.logout();
-  }
-
-  // --- EDGE FUNCTIONS ---
-
-  async sendTestSignal(): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
-
-    const { data, error } = await supabase.functions.invoke('market-signal', {
-        body: { test_user_id: user.id }
-    });
-
-    if (error) {
-        console.error("[API] Edge Function Failed:", error);
-        throw new Error(error.message || "Failed to trigger market signal.");
-    }
-    
-    // Check for application-level error returned in JSON (e.g. from try/catch in function)
-    if (data && data.error) {
-        console.error("[API] Edge Function returned logic error:", data.error);
-        throw new Error(data.error);
-    }
-  }
-
-  async triggerRemindersCheck(): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
-    
-    console.log("[API] Triggering debug reminder check...");
-
-    // Force trigger the check-reminders function for debugging
-    const { data, error } = await supabase.functions.invoke('check-reminders', {
-        body: { test_user_id: user.id, debug: true } 
-    });
-
-    if (error) {
-        console.error("[API] Reminder Invoke Error:", error);
-        // Usually non-2xx means the edge function crashed (500)
-        throw new Error(`Server Error: ${error.message}. Check SQL logs.`);
-    }
-
-    if (data && !data.success) {
-        // This catches the explicit error message from the Edge Function
-        console.error("[API] Reminder Logic Error:", data);
-        throw new Error(`Remote Logic Error: ${data.error || JSON.stringify(data)}`);
-    }
-    
-    console.log("[API] Reminder Check Result:", data);
   }
 
   // --- SESSION MANAGEMENT ---
