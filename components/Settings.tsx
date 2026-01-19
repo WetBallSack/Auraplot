@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Save, Lock, User, AlertCircle, CheckCircle, Globe, Mail, Sparkles, Trash2, AlertTriangle, Clock, Bell, Crown } from 'lucide-react';
@@ -214,8 +212,8 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <h2 className="text-xl font-semibold text-gray-800 dark:text-white">{t('settings.identity_protocol')}</h2>
                 </div>
                 
-                <form onSubmit={handleUpdateProfile} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleUpdateProfile} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('settings.display_name')}</label>
                             <input 
@@ -233,7 +231,7 @@ export const Settings: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 <select 
                                     value={timezone}
                                     onChange={(e) => setTimezone(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white font-mono appearance-none"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white font-mono appearance-none truncate pr-8"
                                 >
                                     {timezones.map(tz => (
                                         <option key={tz} value={tz}>{tz}</option>

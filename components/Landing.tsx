@@ -1,54 +1,130 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, useScroll, useTransform, useMotionValue } from 'framer-motion';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
-import { Crown, TrendingUp, Activity, BarChart2, Shield, ArrowUpRight, ArrowDownRight, ChevronDown, CheckSquare, Calendar, Bell } from 'lucide-react';
+import { Crown, TrendingUp, Activity, BarChart2, Shield, ArrowUpRight, ArrowDownRight, CheckSquare, Calendar, Bell, Terminal, ArrowRight, Zap, Loader2, Check, Smartphone } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import clsx from 'clsx';
 
+// --- ANIMATION WRAPPER ---
+const FadeInSection = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.8, delay, ease: [0.2, 0.65, 0.3, 0.9] }}
+    >
+        {children}
+    </motion.div>
+);
+
 // --- SUB-COMPONENTS ---
 
-const InteractiveSimulator = ({ onInteract }: { onInteract: () => void }) => {
+const ComparisonSection = ({ t }: { t: any }) => {
+    const rows = [
+        { label: "Data Structure", old: t('landing.comp_text'), apps: t('landing.comp_binary'), aura: t('landing.comp_ohlc') },
+        { label: "Recall Method", old: t('landing.comp_subjective'), apps: t('landing.comp_isolated'), aura: t('landing.comp_correlated') },
+        { label: "Mechanism", old: t('landing.comp_passive'), apps: t('landing.comp_gamified'), aura: t('landing.comp_predictive') },
+    ];
+
+    return (
+        <section className="relative z-10 py-40 px-6 bg-white dark:bg-[#050505] text-gray-900 dark:text-gray-100 transition-colors">
+            <div className="max-w-6xl mx-auto">
+                <FadeInSection>
+                    <div className="mb-24 md:text-center">
+                         <h2 className="text-4xl md:text-6xl font-light tracking-tight text-gray-900 dark:text-white mb-6">
+                            {t('landing.compare_title')}
+                         </h2>
+                         <p className="text-gray-500 font-light text-lg max-w-2xl md:mx-auto">{t('landing.compare_desc')}</p>
+                    </div>
+                </FadeInSection>
+
+                <FadeInSection delay={0.2}>
+                    <div className="w-full overflow-x-auto pb-4">
+                        <div className="min-w-[800px]">
+                            {/* Header */}
+                            <div className="grid grid-cols-4 border-b border-gray-200 dark:border-gray-800 pb-6 mb-6">
+                                <div className="text-xs font-bold uppercase tracking-widest text-gray-400">Metric</div>
+                                <div className="text-xs font-bold uppercase tracking-widest text-gray-400">{t('landing.comp_old')}</div>
+                                <div className="text-xs font-bold uppercase tracking-widest text-gray-400">{t('landing.comp_apps')}</div>
+                                <div className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
+                                    {t('landing.comp_aura')}
+                                </div>
+                            </div>
+
+                            {/* Rows */}
+                            {rows.map((row, i) => (
+                                <motion.div 
+                                    key={i} 
+                                    initial={{ opacity: 0, x: -10 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="grid grid-cols-4 py-6 border-b border-gray-100 dark:border-gray-900 last:border-0 group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-4 -mx-4 rounded-xl items-center relative overflow-hidden"
+                                >
+                                    <div className="font-mono text-xs text-gray-400 uppercase tracking-wider relative z-10">{row.label}</div>
+                                    <div className="text-sm text-gray-500 font-serif italic opacity-70 relative z-10">{row.old}</div>
+                                    <div className="text-sm text-gray-500 relative z-10">{row.apps}</div>
+                                    <div className="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-3 relative z-10">
+                                        <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_rgba(0,200,150,0.6)]"></div>
+                                        {row.aura}
+                                    </div>
+                                    
+                                    {/* Subtle green highlight for the Aura column row-by-row */}
+                                    <div className="absolute top-0 bottom-0 right-0 w-[25%] bg-primary/5 dark:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </FadeInSection>
+            </div>
+        </section>
+    );
+};
+
+const InteractiveSimulator = ({ onInitialize }: { onInitialize: () => void }) => {
     const { t } = useLanguage();
     const [intensity, setIntensity] = useState(5);
     const [isBullish, setIsBullish] = useState(true);
     const [eventName, setEventName] = useState("");
 
     return (
-        <div 
-            className="w-full max-w-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border border-white/60 dark:border-white/10 p-6 md:p-8 rounded-[2rem] shadow-2xl allow-internal-scroll overflow-y-auto max-h-[55vh] md:max-h-none md:overflow-visible"
-            onMouseEnter={onInteract}
-            onTouchStart={onInteract}
-        >
-            <div className="flex justify-between items-start mb-6 md:mb-8">
+        <div className="w-full max-w-3xl bg-gray-50 dark:bg-[#0A0A0A] border border-gray-200 dark:border-gray-800 p-8 md:p-12 rounded-[2px] relative overflow-hidden group hover:border-primary/30 transition-colors duration-500">
+            {/* Ambient inner glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -z-10 group-hover:bg-primary/10 transition-colors duration-500"></div>
+
+            <div className="flex justify-between items-end mb-16 border-b border-gray-200 dark:border-gray-800 pb-6">
                 <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t('landing.simulator_title')}</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[200px]">{t('landing.simulator_desc')}</p>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400 block mb-2">Simulation Mode // 001</span>
+                    <h3 className="text-xl font-medium text-gray-900 dark:text-white">{t('landing.simulator_title')}</h3>
                 </div>
-                <div className="bg-gray-100 dark:bg-gray-700/50 px-3 py-1 rounded-full text-[10px] font-mono uppercase tracking-widest text-gray-500 shrink-0 ml-2">
-                    Live Demo
+                <div className="hidden md:block">
+                    <div className="flex items-center gap-2 text-xs font-mono text-gray-400">
+                        <span className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px_rgba(0,200,150,0.8)]"></span> Active
+                    </div>
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-                {/* Controls */}
-                <div className="flex-1 space-y-6">
-                    <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+                {/* Inputs */}
+                <div className="space-y-10">
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Input Event</label>
                         <input 
                             type="text" 
                             placeholder={t('landing.sim_placeholder')}
                             value={eventName}
                             onChange={(e) => setEventName(e.target.value)}
-                            className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all dark:text-white placeholder:text-gray-400"
+                            className="w-full bg-transparent border-b border-gray-300 dark:border-gray-700 py-2 text-base focus:border-primary outline-none transition-colors dark:text-white placeholder:text-gray-400/50 font-light rounded-none"
                         />
                     </div>
                     
-                    <div>
-                        <div className="flex justify-between mb-2">
-                             <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('landing.sim_intensity')}</label>
-                             <span className="font-mono text-xs font-bold text-accent dark:text-white">{intensity}</span>
+                    <div className="space-y-4">
+                        <div className="flex justify-between">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('landing.sim_intensity')}</label>
+                                <span className="font-mono text-xs text-primary">{intensity.toFixed(1)}</span>
                         </div>
                         <input 
                             type="range" 
@@ -57,552 +133,410 @@ const InteractiveSimulator = ({ onInteract }: { onInteract: () => void }) => {
                             step="0.1"
                             value={intensity}
                             onChange={(e) => setIntensity(Number(e.target.value))}
-                            className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
+                            className="w-full h-[1px] bg-gray-300 dark:bg-gray-700 appearance-none cursor-pointer accent-primary"
                         />
                     </div>
 
-                    <div className="flex gap-2">
-                        <button 
+                    <div className="grid grid-cols-2 gap-px bg-gray-200 dark:bg-gray-800 border border-gray-200 dark:border-gray-800">
+                        <motion.button 
+                            whileHover={{ backgroundColor: isBullish ? undefined : "rgba(0,0,0,0.02)" }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => setIsBullish(true)}
-                            className={clsx("flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-all border", 
-                                isBullish ? "bg-primary text-white border-primary shadow-lg shadow-primary/30" : "bg-transparent text-gray-400 border-gray-200 dark:border-gray-700 hover:border-primary")}
+                            className={clsx("py-4 text-[10px] font-bold uppercase tracking-widest transition-colors", 
+                                isBullish ? "bg-white dark:bg-black text-primary shadow-inner" : "bg-gray-50 dark:bg-[#0A0A0A] text-gray-400 hover:text-gray-600")}
                         >
                             {t('landing.sim_bullish')}
-                        </button>
-                        <button 
-                             onClick={() => setIsBullish(false)}
-                             className={clsx("flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-all border", 
-                                !isBullish ? "bg-danger text-white border-danger shadow-lg shadow-danger/30" : "bg-transparent text-gray-400 border-gray-200 dark:border-gray-700 hover:border-danger")}
+                        </motion.button>
+                        <motion.button 
+                                whileHover={{ backgroundColor: !isBullish ? undefined : "rgba(0,0,0,0.02)" }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => setIsBullish(false)}
+                                className={clsx("py-4 text-[10px] font-bold uppercase tracking-widest transition-colors", 
+                                !isBullish ? "bg-white dark:bg-black text-danger shadow-inner" : "bg-gray-50 dark:bg-[#0A0A0A] text-gray-400 hover:text-gray-600")}
                         >
                             {t('landing.sim_bearish')}
-                        </button>
+                        </motion.button>
                     </div>
                 </div>
 
-                {/* Candle Visual */}
-                <div className="w-full md:w-24 h-32 md:h-48 bg-gray-100 dark:bg-gray-900 rounded-2xl flex items-center justify-center relative border border-gray-200 dark:border-gray-800 shrink-0">
-                     {/* Center Line */}
-                     <div className="absolute w-0.5 bg-gray-300 dark:bg-gray-600 h-[80%] rounded-full"></div>
-                     
-                     {/* Candle Body */}
-                     <motion.div 
-                        className={clsx("w-6 rounded-sm relative z-10 shadow-lg", isBullish ? "bg-primary shadow-primary/40" : "bg-danger shadow-danger/40")}
-                        animate={{ 
-                            height: `${intensity * 8}%`,
-                            y: isBullish ? -10 : 10
-                        }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                     />
+                {/* Output Visualization */}
+                <div className="relative h-64 border-l border-gray-200 dark:border-gray-800 pl-8 md:pl-16 flex items-center justify-center">
+                    <div className="absolute inset-y-0 left-8 md:left-16 right-0 border-t border-dashed border-gray-200 dark:border-gray-800 top-1/2"></div>
+                    
+                    {/* Minimalist Candle */}
+                    <div className="relative w-12 flex flex-col items-center justify-center h-full">
+                        {isBullish ? (
+                            <>
+                                <motion.div 
+                                    className="w-[1px] bg-gray-400 dark:bg-gray-600 absolute bottom-1/2 left-1/2 -translate-x-1/2 origin-bottom"
+                                    initial={{ height: 0 }}
+                                    animate={{ height: intensity * 12 }}
+                                    transition={{ type: "spring", stiffness: 100 }}
+                                />
+                                <motion.div 
+                                    className="w-full bg-primary absolute bottom-1/2 shadow-[0_0_20px_rgba(0,200,150,0.4)]"
+                                    initial={{ height: 0 }}
+                                    animate={{ height: intensity * 8 }}
+                                    transition={{ type: "spring", stiffness: 100 }}
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <motion.div 
+                                    className="w-[1px] bg-gray-400 dark:bg-gray-600 absolute top-1/2 left-1/2 -translate-x-1/2 origin-top"
+                                    initial={{ height: 0 }}
+                                    animate={{ height: intensity * 12 }}
+                                    transition={{ type: "spring", stiffness: 100 }}
+                                />
+                                <motion.div 
+                                    className="w-full bg-danger absolute top-1/2 shadow-[0_0_20px_rgba(255,95,95,0.4)]"
+                                    initial={{ height: 0 }}
+                                    animate={{ height: intensity * 8 }}
+                                    transition={{ type: "spring", stiffness: 100 }}
+                                />
+                            </>
+                        )}
+                    </div>
+                    
+                    <div className="absolute top-0 right-0 font-mono text-[10px] text-gray-400">
+                        {isBullish ? '+' : '-'}{(intensity * 1.25).toFixed(2)}%
+                    </div>
                 </div>
             </div>
+            
+            <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onInitialize}
+                className="mt-12 w-full py-4 border border-gray-900 dark:border-white text-gray-900 dark:text-white text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-900 hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+            >
+                Execute
+            </motion.button>
         </div>
     );
 };
 
-// Generic Feature Slide Component
-const FeatureSlide = ({ title, features }: { title: string, features: { icon: any, title: string, desc: string }[] }) => {
-    return (
-        <div className="w-full max-w-5xl allow-internal-scroll overflow-y-auto no-scrollbar max-h-[55vh] md:max-h-none md:overflow-visible px-2 pb-4">
-            <h2 className="text-2xl md:text-4xl font-light text-center mb-8 md:mb-16 text-gray-900 dark:text-white tracking-tight">{title}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {features.map((feat, i) => (
-                    <motion.div 
-                        key={i}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                        className="flex flex-col items-center text-center group"
-                    >
-                        {/* High-end Icon Container */}
-                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-[2rem] bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 flex items-center justify-center mb-4 md:mb-6 group-hover:scale-105 transition-all duration-500 shadow-xl shadow-gray-200/50 dark:shadow-black/50 relative overflow-hidden shrink-0">
-                             {/* Subtle shine effect */}
-                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-                             
-                             <feat.icon size={28} strokeWidth={1.5} className="text-gray-900 dark:text-white" />
-                        </div>
-                        
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 md:mb-3 tracking-tight">{feat.title}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">{feat.desc}</p>
-                    </motion.div>
-                ))}
-            </div>
+const FeatureRow = ({ icon: Icon, title, desc, index }: { icon: any, title: string, desc: string, index: number }) => (
+    <div className="group flex flex-col py-12 border-t border-gray-200 dark:border-gray-800 transition-all hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/5 px-6 -mx-6 rounded-2xl">
+        <div className="flex items-start justify-between mb-6">
+            <span className="font-mono text-xs text-gray-300 dark:text-gray-600 group-hover:text-primary transition-colors">0{index + 1}</span>
+            <Icon size={24} className="text-gray-400 dark:text-gray-600 group-hover:text-primary transition-colors group-hover:scale-110 duration-300" strokeWidth={1} />
         </div>
-    );
-};
-
-const ProofOfGrowth = () => {
-    const { t } = useLanguage();
-    return (
-        <div className="w-full max-w-4xl flex flex-col items-center allow-internal-scroll overflow-y-auto no-scrollbar max-h-[55vh] md:max-h-none md:overflow-visible px-2">
-            <div className="text-center mb-6 md:mb-10">
-                <h2 className="text-2xl md:text-3xl font-light text-gray-900 dark:text-white tracking-tight mb-2">{t('landing.proof_title')}</h2>
-                <p className="text-xs md:text-sm text-gray-500 max-w-md mx-auto">{t('landing.proof_desc')}</p>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-6 md:gap-8 w-full">
-                {/* Chart Comparison */}
-                <div className="flex-1 bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 relative overflow-hidden shrink-0">
-                    <div className="flex justify-between items-center mb-6">
-                        <span className="text-xs font-bold uppercase text-gray-400">{t('landing.bullish_year')}</span>
-                        <ArrowUpRight className="text-primary" size={20} />
-                    </div>
-                    {/* Mock Bullish Chart */}
-                    <div className="h-24 flex items-end justify-between gap-1">
-                        {[20,30,25,40,35,50,45,60,55,70,65,80,75,90].map((h,i) => (
-                             <motion.div 
-                                key={i}
-                                initial={{ height: 0 }}
-                                animate={{ height: `${h}%` }}
-                                transition={{ delay: i*0.05 }}
-                                className="w-full bg-primary/20 rounded-t-sm"
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex-1 bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 relative overflow-hidden shrink-0">
-                    <div className="flex justify-between items-center mb-6">
-                        <span className="text-xs font-bold uppercase text-gray-400">{t('landing.bearish_month')}</span>
-                        <ArrowDownRight className="text-danger" size={20} />
-                    </div>
-                    {/* Mock Bearish Chart */}
-                    <div className="h-24 flex items-end justify-between gap-1">
-                        {[80,70,75,60,65,50,55,40,45,30,35,20,25,10].map((h,i) => (
-                             <motion.div 
-                                key={i}
-                                initial={{ height: 0 }}
-                                animate={{ height: `${h}%` }}
-                                transition={{ delay: i*0.05 }}
-                                className="w-full bg-danger/20 rounded-t-sm"
-                            />
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-xs font-bold mb-8 md:mb-0">
-                 <Shield size={12} /> {t('landing.proof_join')}
-            </div>
-        </div>
-    );
-};
-
-const GlassSlider = ({ total, current, onChange }: { total: number, current: number, onChange: (i: number) => void }) => (
-    // Update: Moved to top-left (top-8 left-6) on mobile, center-left on desktop.
-    <div className="fixed z-40 left-6 top-8 md:left-8 md:top-1/2 md:-translate-y-1/2 md:bottom-auto md:translate-x-0">
-        <div className="flex flex-row md:flex-col gap-4 p-3 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg">
-            {Array.from({ length: total }).map((_, i) => (
-                <button
-                    key={i}
-                    onClick={() => onChange(i)}
-                    className="group relative flex items-center justify-center focus:outline-none"
-                >
-                    <div 
-                        className={clsx(
-                            "rounded-full transition-all duration-500 ease-out",
-                            i === current 
-                                ? 'bg-primary shadow-[0_0_12px_rgba(0,200,150,0.8)] opacity-100' 
-                                : 'bg-primary/20 group-hover:bg-primary/50',
-                            // Responsive sizing:
-                            // Mobile: Horizontal (Active: Wide, Inactive: Short Line)
-                            // Desktop: Vertical (Active: Tall, Inactive: Short Line)
-                            i === current
-                                ? "w-8 h-1 md:w-1 md:h-8" 
-                                : "w-2 h-1 md:w-1 md:h-2" // Short line instead of dot
-                        )} 
-                    />
-                </button>
-            ))}
-        </div>
+        <h3 className="text-2xl font-light text-gray-900 dark:text-white mb-3 tracking-tight group-hover:translate-x-1 transition-transform duration-500">
+            {title}
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-light leading-relaxed max-w-xs group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
+            {desc}
+        </p>
     </div>
 );
+
+// Hero - Refined Logo & Text
+const Hero = ({ t, onEnter, isInitializing }: { t: any, onEnter: () => void, isInitializing: boolean }) => {
+    return (
+        <section className="min-h-screen flex flex-col items-center justify-center relative px-6 pt-20 overflow-hidden">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+                className="text-center z-20 flex flex-col items-center"
+            >
+                {/* ROTATING LOGO - Smaller Size */}
+                <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
+                    className="mb-12 relative"
+                >
+                    <Logo className="w-24 h-24 md:w-32 md:h-32 text-primary opacity-90 stroke-[0.8]" />
+                    {/* Enhanced Glow */}
+                    <div className="absolute inset-0 bg-primary/30 blur-[60px] rounded-full pointer-events-none animate-pulse"></div>
+                </motion.div>
+                
+                <h1 className="text-[10vw] md:text-[8rem] font-thin tracking-tighter text-gray-900 dark:text-white leading-[0.8] mb-12 select-none drop-shadow-sm">
+                    Aura
+                </h1>
+                
+                <div className="h-px w-24 bg-gradient-to-r from-transparent via-primary to-transparent mx-auto mb-12 opacity-50"></div>
+
+                <p className="text-xs md:text-sm font-medium tracking-[0.3em] uppercase text-gray-500 dark:text-gray-400 max-w-lg mx-auto mb-16 text-center">
+                    {t('landing.subtitle')}
+                </p>
+                
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={onEnter}
+                    disabled={isInitializing}
+                    className="group relative inline-flex items-center justify-center gap-4 text-xs font-bold uppercase tracking-widest text-gray-900 dark:text-white hover:text-primary transition-colors disabled:opacity-50"
+                >
+                    {isInitializing ? (
+                        <>
+                            <Loader2 className="animate-spin" size={14} /> 
+                            Initializing System...
+                        </>
+                    ) : (
+                        <>
+                            <span className="border-b border-transparent group-hover:border-primary transition-all pb-1">{t('landing.initialize')}</span> 
+                            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                        </>
+                    )}
+                </motion.button>
+            </motion.div>
+        </section>
+    );
+};
 
 // --- MAIN COMPONENT ---
 
 export const Landing: React.FC<{ onEnter: () => void, onPricing: () => void, onTerms: () => void, onFAQ: () => void }> = ({ onEnter, onPricing, onTerms, onFAQ }) => {
   const { t } = useLanguage();
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [initializing, setInitializing] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
-  const [showFooter, setShowFooter] = useState(false);
-  
-  // Ref for scroll throttling
-  const lastScrollTime = useRef(0);
-  const touchStartY = useRef(0);
-  
-  const slideTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const SLIDES = [
-    { id: 0, type: 'hero' },
-    { id: 1, type: 'pain-killer' },
-    { id: 2, type: 'simulator' },
-    { id: 3, type: 'features-analysis' },
-    { id: 4, type: 'features-execution' },
-    { id: 5, type: 'proof' },
-  ];
-
-  // Lock Body Scroll on Mount
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-        document.body.style.overflow = 'unset';
-    };
-  }, []);
-
-  const changeSlide = (direction: 'next' | 'prev') => {
-      const now = Date.now();
-      if (now - lastScrollTime.current < 800) return; // Debounce
-      
-      lastScrollTime.current = now;
-      setIsHovering(true); // Pause auto-rotate
-
-      if (direction === 'next') {
-          if (currentSlide < SLIDES.length - 1) {
-              setCurrentSlide(prev => prev + 1);
-              setShowFooter(false);
-          } else {
-              // On last slide, next scroll reveals footer
-              setShowFooter(true);
-          }
-      } else {
-          if (showFooter) {
-              setShowFooter(false);
-          } else if (currentSlide > 0) {
-              setCurrentSlide(prev => prev - 1);
-          }
-      }
-  };
-
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-        // Check if we are scrolling inside a scrollable element
-        const target = e.target as HTMLElement;
-        const scrollable = target.closest('.allow-internal-scroll');
-        
-        if (scrollable) {
-            const { scrollTop, scrollHeight, clientHeight } = scrollable;
-            const isAtTop = scrollTop <= 0;
-            const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) <= 1;
-
-            // If scrolling down AND not at bottom, allow default scroll (don't change slide)
-            if (e.deltaY > 0 && !isAtBottom) {
-                return;
-            }
-            // If scrolling up AND not at top, allow default scroll
-            if (e.deltaY < 0 && !isAtTop) {
-                return;
-            }
-        }
-
-        // Otherwise, prevent default and change slide
-        e.preventDefault(); 
-        
-        if (Math.abs(e.deltaY) > 10) {
-            changeSlide(e.deltaY > 0 ? 'next' : 'prev');
-        }
-    };
-
-    const handleTouchStart = (e: TouchEvent) => {
-        touchStartY.current = e.touches[0].clientY;
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-        const touchEndY = e.changedTouches[0].clientY;
-        const diff = touchStartY.current - touchEndY;
-        
-        // Check if we are scrolling inside a scrollable element
-        const target = e.target as HTMLElement;
-        const scrollable = target.closest('.allow-internal-scroll');
-
-        if (scrollable) {
-            const { scrollTop, scrollHeight, clientHeight } = scrollable;
-            const isAtTop = scrollTop <= 0;
-            const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) <= 1;
-
-            // Swipe Up (Scroll Down)
-            if (diff > 0 && !isAtBottom) return;
-
-            // Swipe Down (Scroll Up)
-            if (diff < 0 && !isAtTop) return;
-        }
-
-        if (Math.abs(diff) > 50) { // Threshold for swipe
-             changeSlide(diff > 0 ? 'next' : 'prev');
-        }
-    };
-
-    // Use { passive: false } to allow preventDefault to block native scroll
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('touchstart', handleTouchStart, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-    return () => {
-        window.removeEventListener('wheel', handleWheel);
-        window.removeEventListener('touchstart', handleTouchStart);
-        window.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [currentSlide, showFooter]);
-
-  useEffect(() => {
-    if (!isHovering && !showFooter) {
-        slideTimer.current = setInterval(() => {
-            setCurrentSlide((prev) => {
-                const next = (prev + 1) % SLIDES.length;
-                return next;
-            });
-        }, 12000); 
-    }
-
-    return () => {
-        if (slideTimer.current) clearInterval(slideTimer.current);
-    };
-  }, [isHovering, showFooter, SLIDES.length]);
 
   const handleInitialize = () => {
       setInitializing(true);
       setTimeout(() => {
           onEnter();
-      }, 1200);
-  };
-
-  const renderSlideContent = (index: number) => {
-      switch(index) {
-          case 0: // Hero
-            return (
-                <div className="text-center">
-                     <motion.div 
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                        className="inline-block mb-12"
-                    >
-                        <Logo className="w-32 h-32 text-gray-900 dark:text-white stroke-[1.5]" />
-                    </motion.div>
-                    <h2 className="text-5xl md:text-8xl font-light tracking-tighter text-gray-900 dark:text-white mb-6">
-                        Aura
-                    </h2>
-                    <p className="text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-gray-400 dark:text-gray-500 max-w-lg mx-auto leading-relaxed">
-                        {t('landing.subtitle')}
-                    </p>
-                </div>
-            );
-        case 1: // Pain Killer
-            return (
-                <div className="text-center max-w-2xl px-6 allow-internal-scroll overflow-y-auto max-h-[55vh] md:max-h-none md:overflow-visible">
-                     <h2 className="text-3xl md:text-6xl font-light tracking-tighter text-gray-900 dark:text-white mb-6 md:mb-8">
-                        {t('landing.pain_killer_title')}
-                     </h2>
-                     <p className="text-base md:text-xl text-gray-500 dark:text-gray-400 leading-relaxed font-light">
-                        {t('landing.pain_killer_desc')}
-                     </p>
-                </div>
-            );
-        case 2: // Simulator
-            return <InteractiveSimulator onInteract={() => setIsHovering(true)} />;
-        case 3: // Features: Analysis
-            const analysisFeatures = [
-                { icon: Activity, title: t('landing.feat_volatility'), desc: t('landing.feat_volatility_desc') },
-                { icon: TrendingUp, title: t('landing.feat_biomarket'), desc: t('landing.feat_biomarket_desc') },
-                { icon: BarChart2, title: t('landing.feat_logs'), desc: t('landing.feat_logs_desc') },
-            ];
-            return <FeatureSlide title={t('landing.analysis_title')} features={analysisFeatures} />;
-        case 4: // Features: Execution
-            const executionFeatures = [
-                { icon: CheckSquare, title: t('landing.feat_checklist'), desc: t('landing.feat_checklist_desc') },
-                { icon: Calendar, title: t('landing.feat_planner'), desc: t('landing.feat_planner_desc') },
-                { icon: Bell, title: t('landing.feat_reminders'), desc: t('landing.feat_reminders_desc') },
-            ];
-            return <FeatureSlide title={t('landing.execution_title')} features={executionFeatures} />;
-        case 5: // Proof
-            return <ProofOfGrowth />;
-        default:
-            return null;
-      }
+      }, 800);
   };
 
   return (
-    // Fixed container ensures we own the scroll behavior completely
-    <div className="fixed inset-0 z-[100] bg-[#F9FAFB] dark:bg-gray-900 transition-colors duration-500 font-sans selection:bg-primary selection:text-white flex flex-col overflow-hidden">
-        
-        {/* Permanent SEO H1 - Hidden visually */}
-        <h1 className="sr-only">Aura - The Mint Terminal for Life's Market Data</h1>
+    <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }} 
+        transition={{ duration: 0.8 }}
+        className="bg-white dark:bg-[#050505] text-gray-900 dark:text-white transition-colors duration-700 font-sans selection:bg-primary/20 selection:text-primary relative overflow-x-hidden"
+    >
+        {/* Global Ambient Green Glow */}
+        <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent opacity-50 dark:opacity-30"></div>
 
-        {/* Navbar */}
-        <div className="absolute top-8 right-8 z-50 flex items-center gap-4 md:gap-6">
-            <button 
-                onClick={onPricing} 
-                className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2"
-            >
-                <Crown size={14} /> <span className="hidden md:inline">{t('landing.pricing')}</span>
-            </button>
-            <div className="flex items-center gap-2">
-                <LanguageToggle />
-                <ThemeToggle />
+        {/* Sticky Nav - Minimal */}
+        <nav className="fixed top-0 left-0 w-full z-50 px-8 py-8 flex justify-between items-center mix-blend-difference text-white pointer-events-none">
+            <div className="pointer-events-auto opacity-0 md:opacity-100 transition-opacity">
             </div>
-        </div>
-
-        {/* Massive Central Aura - The "Atmosphere" */}
-        <motion.div 
-            animate={{ 
-                scale: [1, 1.1, 1],
-                opacity: [0.3, 0.5, 0.3], 
-            }}
-            transition={{ 
-                duration: 10, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-            }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] h-[100vh] md:w-[1000px] md:h-[1000px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[120px] pointer-events-none" 
-        />
-        
-        {/* Drifting Green Cloud - Moving freely, not stuck in corner */}
-         <motion.div 
-            animate={{ 
-                x: [-100, 100, -100],
-                y: [-50, 50, -50],
-                rotate: [0, 180, 360],
-                scale: [1, 1.2, 1]
-            }}
-            transition={{ 
-                duration: 20, 
-                repeat: Infinity, 
-                ease: "linear" 
-            }}
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/20 dark:bg-primary/10 rounded-full blur-[100px] pointer-events-none opacity-60" 
-        />
-        
-        {/* Secondary Teal Cloud - Balancing the other side */}
-         <motion.div 
-            animate={{ 
-                x: [100, -100, 100],
-                y: [50, -50, 50],
-                scale: [1.2, 1, 1.2]
-            }}
-            transition={{ 
-                duration: 25, 
-                repeat: Infinity, 
-                ease: "linear" 
-            }}
-            className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-teal-300/20 dark:bg-teal-500/10 rounded-full blur-[100px] pointer-events-none opacity-50" 
-        />
-
-        {/* Content Wrapper that translates up to reveal footer */}
-        <motion.div 
-            className="flex-1 w-full h-full flex flex-col items-center justify-center relative z-10"
-            animate={{ y: showFooter ? -120 : 0 }}
-            transition={{ type: "spring", stiffness: 80, damping: 20 }}
-        >
-             {/* Slider Navigation */}
-            <GlassSlider 
-                total={SLIDES.length} 
-                current={currentSlide} 
-                onChange={(i) => {
-                    setCurrentSlide(i);
-                    setShowFooter(false);
-                    setIsHovering(true);
-                }} 
-            />
-
-            <div className="w-full max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center justify-center">
-                <div className="relative w-full h-[65vh] md:h-[600px] flex items-center justify-center">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={currentSlide}
-                            initial={{ opacity: 0, y: 30, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -30, scale: 0.98 }}
-                            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} 
-                            className="absolute inset-0 flex items-center justify-center"
-                        >
-                            {renderSlideContent(currentSlide)}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
-
-                {/* Initialize Button */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                    className="absolute bottom-20 md:bottom-12 z-30"
+            <div className="flex items-center gap-8 pointer-events-auto">
+                <button 
+                    onClick={onPricing} 
+                    className="text-[10px] font-bold uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-2"
                 >
-                    <button
-                        onClick={handleInitialize}
-                        disabled={initializing}
-                        className={clsx(
-                            "relative overflow-hidden rounded-full border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white font-bold tracking-widest hover:bg-white dark:hover:bg-white/10 hover:shadow-2xl hover:scale-105 transition-all uppercase backdrop-blur-md group",
-                            currentSlide === 0 
-                                ? "px-12 py-5 text-xs" 
-                                : "px-8 py-3 text-[10px] md:px-12 md:py-5 md:text-xs"
-                        )}
-                    >
-                        <span className="relative z-10">{t('landing.initialize')}</span>
-                        {initializing && (
-                                <motion.div 
-                                initial={{ x: '-100%' }}
-                                animate={{ x: '100%' }}
-                                transition={{ duration: 1, ease: "easeInOut" }}
-                                className="absolute inset-0 bg-primary/30 dark:bg-white/20 z-0"
-                                />
-                        )}
-                    </button>
-                </motion.div>
-
-                {/* Footer Hint */}
-                {currentSlide === SLIDES.length - 1 && !showFooter && (
-                     <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }}
-                        className="absolute bottom-4 left-1/2 -translate-x-1/2 text-gray-400 animate-bounce cursor-pointer"
-                        onClick={() => setShowFooter(true)}
-                    >
-                        <ChevronDown size={20} />
-                    </motion.div>
-                )}
+                    {t('landing.pricing')}
+                </button>
+                <div className="flex items-center gap-4">
+                    <LanguageToggle className="!bg-transparent !text-white !p-0 hover:!opacity-70 !w-auto !h-auto" />
+                    <ThemeToggle className="!bg-transparent !text-white !p-0 hover:!opacity-70" />
+                </div>
             </div>
-        </motion.div>
-        
-        {/* Internal Footer for Landing Page */}
-        <motion.div 
-            initial={{ y: 200 }}
-            animate={{ y: showFooter ? 0 : 200 }}
-            transition={{ type: "spring", stiffness: 80, damping: 20 }}
-            className="absolute bottom-0 w-full py-6 md:py-8 flex justify-center z-50 pointer-events-auto"
-        >
-            <div className="flex flex-wrap justify-center items-center gap-2 md:gap-4 px-4">
-                {/* Support Link */}
-                <div className="backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/20 dark:border-white/10 px-4 py-2 md:px-5 md:py-2.5 rounded-full shadow-xl flex items-center gap-3 hover:bg-white/50 dark:hover:bg-black/50 transition-all duration-300 group">
-                    <div className="flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                        </span>
-                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
-                            Support
-                        </span>
+        </nav>
+
+        {/* 1. Hero Section */}
+        <Hero t={t} onEnter={handleInitialize} isInitializing={initializing} />
+
+        {/* 2. The Problem (Pain Killer) - Architectural Text */}
+        <section className="relative z-10 py-40 px-6 bg-gray-50 dark:bg-[#080808]">
+            <div className="max-w-5xl mx-auto">
+                <FadeInSection>
+                    <div className="flex flex-col md:flex-row gap-16 items-start">
+                        <div className="flex-1">
+                            <h2 className="text-4xl md:text-6xl font-light tracking-tight text-gray-900 dark:text-white leading-[1.1] mb-8">
+                                {t('landing.pain_killer_title')}
+                            </h2>
+                            <div className="w-12 h-px bg-primary shadow-[0_0_10px_rgba(0,200,150,0.5)]"></div>
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 leading-relaxed font-light">
+                                {t('landing.pain_killer_desc')}
+                            </p>
+                        </div>
                     </div>
-                    <div className="h-3 w-px bg-gray-300 dark:bg-gray-700 hidden sm:block"></div>
-                    <a href="mailto:support@auraplot.site" className="text-[11px] font-bold text-gray-800 dark:text-white hover:text-primary dark:hover:text-primary transition-colors select-text font-mono block">
-                        support@auraplot.site
-                    </a>
+                </FadeInSection>
+            </div>
+        </section>
+
+        {/* 3. Simulator Demo - Instrument Style */}
+        <section className="relative z-10 py-40 px-6">
+            <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-24">
+                <div className="flex-1 order-2 lg:order-1">
+                    <FadeInSection delay={0.2}>
+                        <InteractiveSimulator onInitialize={handleInitialize} />
+                    </FadeInSection>
+                </div>
+                <div className="flex-1 order-1 lg:order-2">
+                    <FadeInSection>
+                        <h2 className="text-3xl font-light text-gray-900 dark:text-white mb-6">
+                            Quantify Reality
+                        </h2>
+                        <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed text-lg font-light max-w-md">
+                            Every event is a trade. Aura logs these inputs to calculate your emotional volatility with financial precision.
+                        </p>
+                        <div className="flex items-center gap-4 text-xs font-mono text-gray-400 uppercase tracking-wider">
+                            <span className="flex items-center gap-2 text-primary"><Terminal size={14} /> Real-time</span>
+                            <span className="w-px h-3 bg-gray-300 dark:bg-gray-700"></span>
+                            <span>Secure Protocol</span>
+                        </div>
+                    </FadeInSection>
+                </div>
+            </div>
+        </section>
+
+        {/* 4. Features - "Index" Style Grid */}
+        <section className="relative z-10 py-40 px-6 border-t border-gray-100 dark:border-gray-900">
+            <div className="max-w-7xl mx-auto">
+                <FadeInSection>
+                    <div className="mb-24">
+                        <span className="text-xs font-bold text-primary uppercase tracking-widest">System Modules</span>
+                    </div>
+                </FadeInSection>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-12">
+                    <FadeInSection delay={0.1}>
+                        <FeatureRow 
+                            icon={Activity} 
+                            title={t('landing.feat_volatility')} 
+                            desc={t('landing.feat_volatility_desc')} 
+                            index={0}
+                        />
+                    </FadeInSection>
+                    <FadeInSection delay={0.2}>
+                        <FeatureRow 
+                            icon={TrendingUp} 
+                            title={t('landing.feat_biomarket')} 
+                            desc={t('landing.feat_biomarket_desc')} 
+                            index={1}
+                        />
+                    </FadeInSection>
+                    <FadeInSection delay={0.3}>
+                        <FeatureRow 
+                            icon={BarChart2} 
+                            title={t('landing.feat_logs')} 
+                            desc={t('landing.feat_logs_desc')} 
+                            index={2}
+                        />
+                    </FadeInSection>
+                    <FadeInSection delay={0.4}>
+                        <FeatureRow 
+                            icon={CheckSquare} 
+                            title={t('landing.feat_checklist')} 
+                            desc={t('landing.feat_checklist_desc')} 
+                            index={3}
+                        />
+                    </FadeInSection>
+                    <FadeInSection delay={0.5}>
+                        <FeatureRow 
+                            icon={Calendar} 
+                            title={t('landing.feat_planner')} 
+                            desc={t('landing.feat_planner_desc')} 
+                            index={4}
+                        />
+                    </FadeInSection>
+                    <FadeInSection delay={0.6}>
+                        <FeatureRow 
+                            icon={Bell} 
+                            title={t('landing.feat_reminders')} 
+                            desc={t('landing.feat_reminders_desc')} 
+                            index={5}
+                        />
+                    </FadeInSection>
                 </div>
 
-                {/* FAQ Link */}
-                <button 
-                    onClick={onFAQ}
-                    className="backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/20 dark:border-white/10 px-4 py-2 md:px-4 md:py-2.5 rounded-full shadow-xl text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:bg-white/50 dark:hover:bg-black/50 hover:text-gray-800 dark:hover:text-white transition-all duration-300"
-                >
-                    FAQ
-                </button>
-
-                {/* Terms Link */}
-                <button 
-                    onClick={onTerms}
-                    className="backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/20 dark:border-white/10 px-4 py-2 md:px-4 md:py-2.5 rounded-full shadow-xl text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:bg-white/50 dark:hover:bg-black/50 hover:text-gray-800 dark:hover:text-white transition-all duration-300"
-                >
-                    Terms
-                </button>
+                <div className="mt-32 text-center">
+                    <FadeInSection delay={0.4}>
+                        <motion.button
+                            whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(0,200,150,0.3)" }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleInitialize}
+                            className="bg-gray-900 dark:bg-white text-white dark:text-black rounded-full px-12 py-5 text-xs font-bold uppercase tracking-[0.2em] hover:bg-black dark:hover:bg-gray-200 transition-all shadow-2xl relative overflow-hidden group"
+                        >
+                            <span className="relative z-10">Initialize Aura</span>
+                            {/* Inner Shimmer */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                        </motion.button>
+                    </FadeInSection>
+                </div>
             </div>
-        </motion.div>
-    </div>
+        </section>
+
+        {/* 5. Comparison Section (New) */}
+        <ComparisonSection t={t} />
+
+        {/* 6. Proof - Minimal Charts */}
+        <section className="relative z-10 py-40 px-6 overflow-hidden bg-gray-50 dark:bg-[#080808]">
+            <div className="max-w-6xl mx-auto">
+                <FadeInSection>
+                    <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-8">
+                        <div>
+                            <h2 className="text-3xl md:text-5xl font-light text-gray-900 dark:text-white mb-6">{t('landing.proof_title')}</h2>
+                            <p className="text-gray-500 max-w-md font-light">{t('landing.proof_desc')}</p>
+                        </div>
+                        <div className="flex items-center gap-3 text-primary">
+                            <Shield size={16} />
+                            <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{t('landing.proof_join')}</span>
+                        </div>
+                    </div>
+                </FadeInSection>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    {/* Bullish Chart */}
+                    <FadeInSection delay={0.1}>
+                        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 p-8 h-[300px] flex flex-col justify-between hover:border-primary/30 transition-colors duration-500">
+                            <div className="flex justify-between items-start">
+                                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">{t('landing.bullish_year')}</span>
+                                <ArrowUpRight className="text-primary" size={20} />
+                            </div>
+                            <div className="flex items-end justify-between gap-2 h-32">
+                                {[20,30,25,40,35,50,45,60,55,70,65,80,75,90].map((h,i) => (
+                                    <motion.div 
+                                        key={i}
+                                        initial={{ height: 0 }}
+                                        whileInView={{ height: `${h}%` }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: i*0.05, duration: 0.5 }}
+                                        className="w-full bg-primary opacity-90 shadow-[0_0_10px_rgba(0,200,150,0.2)]"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </FadeInSection>
+
+                    {/* Bearish Chart */}
+                    <FadeInSection delay={0.2}>
+                        <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 p-8 h-[300px] flex flex-col justify-between hover:border-red-500/30 transition-colors duration-500">
+                            <div className="flex justify-between items-start">
+                                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">{t('landing.bearish_month')}</span>
+                                <ArrowDownRight className="text-danger" size={20} />
+                            </div>
+                            <div className="flex items-end justify-between gap-2 h-32">
+                                {[80,70,75,60,65,50,55,40,45,30,35,20,25,10].map((h,i) => (
+                                    <motion.div 
+                                        key={i}
+                                        initial={{ height: 0 }}
+                                        whileInView={{ height: `${h}%` }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: i*0.05, duration: 0.5 }}
+                                        className="w-full bg-danger opacity-90 shadow-[0_0_10px_rgba(255,95,95,0.2)]"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </FadeInSection>
+                </div>
+            </div>
+        </section>
+
+        {/* 7. Footer - Minimal */}
+        <footer className="relative z-10 py-20 px-6 bg-white dark:bg-[#050505] border-t border-gray-100 dark:border-gray-900">
+            <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
+                <div className="text-center md:text-left">
+                    <Logo className="w-6 h-6 mb-4 mx-auto md:mx-0 text-gray-900 dark:text-white" />
+                    <p className="text-xs text-gray-400">© 2026 Aura Systems.</p>
+                </div>
+                
+                <div className="flex gap-12 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    <button onClick={onTerms} className="hover:text-primary transition-colors">Terms</button>
+                    <button onClick={onFAQ} className="hover:text-primary transition-colors">FAQ</button>
+                    <a href="mailto:support@auraplot.site" className="hover:text-primary transition-colors">Support</a>
+                </div>
+            </div>
+        </footer>
+    </motion.div>
   );
 };

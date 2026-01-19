@@ -117,34 +117,58 @@ export const Planner: React.FC = () => {
             return;
         }
 
+        // Optimistic Add
+        const tempId = crypto.randomUUID();
+        const newOrderOptimistic: ScheduledOrder = {
+            id: tempId,
+            user_id: user?.id || 'temp',
+            name: newItemName,
+            impact: newItemImpact,
+            intensity: newItemIntensity,
+            stickiness: newItemStickiness,
+            time: newItemTime || undefined,
+            scheduled_date: selectedDateStr,
+            filled: false
+        };
+
+        setMonthlyOrders(prev => [...prev, newOrderOptimistic]);
+        
+        // Reset Form
+        setNewItemName('');
+        setNewItemTime('');
+        setNewItemImpact(5);
+        setNewItemIntensity(5);
+        setNewItemStickiness(0.5);
+
         try {
-            const newOrder = await api.saveScheduledOrder({
-                name: newItemName,
-                impact: newItemImpact,
-                intensity: newItemIntensity,
-                stickiness: newItemStickiness,
-                time: newItemTime || undefined,
-                scheduled_date: selectedDateStr,
+            const confirmedOrder = await api.saveScheduledOrder({
+                name: newOrderOptimistic.name,
+                impact: newOrderOptimistic.impact,
+                intensity: newOrderOptimistic.intensity,
+                stickiness: newOrderOptimistic.stickiness,
+                time: newOrderOptimistic.time,
+                scheduled_date: newOrderOptimistic.scheduled_date,
                 filled: false
             });
-            
-            setMonthlyOrders(prev => [...prev, newOrder]);
-            setNewItemName('');
-            setNewItemTime('');
-            setNewItemImpact(5);
-            setNewItemIntensity(5);
-            setNewItemStickiness(0.5);
+            // Replace temporary ID with real one
+            setMonthlyOrders(prev => prev.map(o => o.id === tempId ? confirmedOrder : o));
         } catch (e) {
             alert(t('planner.failed_add'));
+            // Revert
+            setMonthlyOrders(prev => prev.filter(o => o.id !== tempId));
         }
     };
 
     const handleDeleteItem = async (id: string) => {
+        const originalList = [...monthlyOrders];
+        // Optimistic Delete
+        setMonthlyOrders(prev => prev.filter(o => o.id !== id));
+
         try {
             await api.deleteScheduledOrder(id);
-            setMonthlyOrders(prev => prev.filter(o => o.id !== id));
         } catch (e) {
             alert(t('planner.failed_delete'));
+            setMonthlyOrders(originalList);
         }
     };
 
@@ -354,7 +378,7 @@ export const Planner: React.FC = () => {
                             </div>
 
                             {/* Add Item Form */}
-                            <form onSubmit={handleAddItem} className="bg-gray-50 dark:bg-zinc-800/30 p-3 rounded-xl border border-gray-100 dark:border-zinc-800">
+                            <form onSubmit={handleAddItem} className="bg-gray-50 dark:bg-zinc-800/30 p-3 rounded-xl border border-gray-100 dark:border-zinc-800 mb-6">
                                 <input 
                                     className="w-full bg-transparent border-b border-gray-200 dark:border-zinc-700 text-sm py-1 outline-none mb-3 dark:text-white"
                                     placeholder={t('planner.task_name')}
@@ -363,9 +387,9 @@ export const Planner: React.FC = () => {
                                 />
                                 
                                 <div className="space-y-3 mb-4">
-                                    <div className="flex justify-between text-[10px] font-medium">
+                                    <div className="flex justify-between text-[10px] font-medium whitespace-nowrap">
                                         <span className={newItemImpact < 0 ? "text-danger" : "text-gray-400"}>{t('planner.drain')}</span>
-                                        <span className="font-mono font-bold text-gray-800 dark:text-white">{newItemImpact > 0 ? '+' : ''}{newItemImpact}</span>
+                                        <span className="font-mono font-bold text-gray-800 dark:text-white mx-1">{newItemImpact > 0 ? '+' : ''}{newItemImpact}</span>
                                         <span className={newItemImpact > 0 ? "text-primary" : "text-gray-400"}>{t('planner.boost')}</span>
                                     </div>
                                     <input 
@@ -403,7 +427,6 @@ export const Planner: React.FC = () => {
                                 <div className="mb-3">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-between mb-1">
                                         <span className="flex items-center gap-1"><Clock size={10} /> {t('planner.time')}</span>
-                                        <span className="text-[8px] text-primary">{t('planner.timezone_hint')}: {user?.timezone?.split('/')[1] || 'Local'}</span>
                                     </label>
                                     <div className="relative">
                                         <input 
@@ -412,6 +435,10 @@ export const Planner: React.FC = () => {
                                             value={newItemTime}
                                             onChange={e => setNewItemTime(e.target.value)}
                                         />
+                                    </div>
+                                    {/* Separate Badge for Timezone to fix overlap */}
+                                    <div className="text-[9px] text-gray-400 text-right mt-1">
+                                        {t('planner.timezone_hint')}: <span className="text-primary font-medium">{user?.timezone?.split('/')[1] || 'Local'}</span>
                                     </div>
                                 </div>
 
@@ -428,7 +455,7 @@ export const Planner: React.FC = () => {
                                 </button>
                             </form>
                             
-                            <div className="flex items-start gap-2 text-[10px] text-gray-400 leading-tight pt-1">
+                            <div className="flex items-start gap-2 text-[10px] text-gray-400 leading-tight pt-2 border-t border-gray-100 dark:border-zinc-800">
                                 <Info size={12} className="shrink-0 mt-0.5" />
                                 {t('planner.hint')}
                             </div>

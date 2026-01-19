@@ -25,6 +25,9 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
     const [impact, setImpact] = useState(5); // -10 to 10
     const [intensity, setIntensity] = useState(5); // 1 to 10
     const [stickiness, setStickiness] = useState(0.5); // 0 to 1
+    
+    // Time Toggle State
+    const [hasTime, setHasTime] = useState(false);
     const [taskTime, setTaskTime] = useState(''); // HH:MM
     
     // Template Management
@@ -210,55 +213,89 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
         }
 
         const today = new Date().toISOString().split('T')[0];
+        
+        // Optimistic add (requires a temp ID)
+        const tempId = crypto.randomUUID();
+        const optimisticOrder: ScheduledOrder = {
+            id: tempId,
+            user_id: user?.id || 'temp',
+            name: taskName,
+            impact: impact,
+            intensity: intensity,
+            time: hasTime ? taskTime : undefined,
+            filled: false,
+            scheduled_date: today,
+            stickiness: stickiness
+        };
+
+        setScheduledOrders(prev => [...prev, optimisticOrder].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')));
+        
+        // Reset Form Immediately
+        setTaskName('');
+        setTaskTime('');
+        setHasTime(false);
+        setImpact(5);
+        setIntensity(5);
+        setStickiness(0.5);
+
         try {
             const newOrder = await api.saveScheduledOrder({
-                name: taskName,
-                impact: impact,
-                intensity: intensity,
-                time: taskTime || undefined,
+                name: optimisticOrder.name,
+                impact: optimisticOrder.impact,
+                intensity: optimisticOrder.intensity,
+                time: optimisticOrder.time,
                 filled: false,
                 scheduled_date: today,
-                stickiness: stickiness
+                stickiness: optimisticOrder.stickiness
             });
             
-            setScheduledOrders(prev => [...prev, newOrder].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')));
-            
-            setTaskName('');
-            setTaskTime('');
-            setImpact(5);
-            setIntensity(5);
-            setStickiness(0.5);
+            // Replace optimistic with real
+            setScheduledOrders(prev => prev.map(o => o.id === tempId ? newOrder : o).sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')));
         } catch (e) {
             console.error(e);
             alert("Failed to add task.");
+            // Revert on failure
+            setScheduledOrders(prev => prev.filter(o => o.id !== tempId));
         }
     };
 
     const handleToggleFill = async (order: ScheduledOrder) => {
+        // Optimistic Update
+        const updatedOptimistic = { ...order, filled: !order.filled };
+        setScheduledOrders(prev => prev.map(o => o.id === order.id ? updatedOptimistic : o));
+
         try {
             const updated = await api.saveScheduledOrder({
                 ...order,
                 filled: !order.filled
             });
+            // Confirm with server response
             setScheduledOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
         } catch (e) {
             console.error(e);
+            // Revert
+            setScheduledOrders(prev => prev.map(o => o.id === order.id ? order : o));
         }
     };
 
     const handleRemoveOrder = async (id: string) => {
+        // Optimistic Delete
+        const originalList = [...scheduledOrders];
+        setScheduledOrders(prev => prev.filter(o => o.id !== id));
+
         try {
             await api.deleteScheduledOrder(id);
-            setScheduledOrders(prev => prev.filter(o => o.id !== id));
         } catch (e) {
             console.error(e);
+            // Revert
+            setScheduledOrders(originalList);
+            alert("Failed to delete task");
         }
     };
 
     const handleClearDay = async () => {
         if (!isConfirmingClear) {
             setIsConfirmingClear(true);
-            // Reset confirmation after 4 seconds
             setTimeout(() => setIsConfirmingClear(false), 4000);
             return;
         }
@@ -279,7 +316,6 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
     const handleLoadStrategy = async (strategy: Strategy) => {
         if (scheduledOrders.length > 0 && !confirm("This will add strategy items to your existing list. Continue?")) return;
         
-        // Pro Limit Check for Strategy Load
         if (!user?.isPro && (scheduledOrders.length + strategy.orders.length > 7)) {
              alert("Cannot deploy strategy: Exceeds 7-item daily limit for free accounts.");
              return;
@@ -298,7 +334,6 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
         if (!strategyName) return;
         setIsSavingStrat(true);
         try {
-            // Map scheduled orders to generic Orders for template
             const ordersForTemplate: Order[] = scheduledOrders.map(so => ({
                 id: crypto.randomUUID(),
                 name: so.name,
@@ -433,24 +468,45 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Time</label>
-                                <div className="relative">
-                                    <input 
-                                        type="time"
-                                        value={taskTime}
-                                        onChange={(e) => setTaskTime(e.target.value)}
-                                        className="w-full bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-xl px-2 py-2.5 text-sm outline-none dark:text-white appearance-none pr-8"
-                                    />
-                                    {!taskTime && <Clock size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />}
+                                <div className="flex justify-between items-center mb-1 h-[15px]">
+                                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Time</label>
+                                    {/* Toggle Switch for Time */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setHasTime(!hasTime)}
+                                        className={clsx(
+                                            "w-6 h-3 rounded-full transition-colors relative",
+                                            hasTime ? "bg-primary" : "bg-gray-300 dark:bg-zinc-700"
+                                        )}
+                                    >
+                                        <div className={clsx(
+                                            "w-2 h-2 bg-white rounded-full absolute top-0.5 transition-all shadow-sm",
+                                            hasTime ? "left-3.5" : "left-0.5"
+                                        )} />
+                                    </button>
+                                </div>
+                                <div className="relative h-[42px]">
+                                    {hasTime ? (
+                                        <input 
+                                            type="time"
+                                            value={taskTime}
+                                            onChange={(e) => setTaskTime(e.target.value)}
+                                            className="w-full h-full bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-xl px-2 text-sm outline-none dark:text-white appearance-none pr-2"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-gray-50 dark:bg-zinc-800/20 border border-gray-200 dark:border-zinc-800 rounded-xl flex items-center justify-center text-gray-300 dark:text-zinc-700 text-xs italic">
+                                            Anytime
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                         
                         {/* Impact Slider */}
                         <div className="space-y-3 pt-2">
-                             <div className="flex justify-between text-xs font-medium">
+                             <div className="flex justify-between text-xs font-medium whitespace-nowrap">
                                 <span className={impact < 0 ? "text-danger" : "text-gray-400"}>Drain (-10)</span>
-                                <span className="font-mono font-bold text-gray-800 dark:text-white">{impact > 0 ? '+' : ''}{impact}</span>
+                                <span className="font-mono font-bold text-gray-800 dark:text-white mx-2">{impact > 0 ? '+' : ''}{impact}</span>
                                 <span className={impact > 0 ? "text-primary" : "text-gray-400"}>Boost (+10)</span>
                              </div>
                             <input 
@@ -631,7 +687,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                        <AnimatePresence mode="popLayout">
+                        <AnimatePresence mode="popLayout" initial={false}>
                             {scheduledOrders.map(order => (
                                 <motion.div
                                     key={order.id}
@@ -639,6 +695,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                                     initial={{ opacity: 0, scale: 0.98 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.98 }}
+                                    transition={{ duration: 0.2 }}
                                     className={clsx(
                                         "group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
                                         order.filled 
