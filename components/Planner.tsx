@@ -378,7 +378,7 @@ export const Planner: React.FC = () => {
                             </div>
 
                             {/* Add Item Form */}
-                            <form onSubmit={handleAddItem} className="bg-gray-50 dark:bg-zinc-800/30 p-3 rounded-xl border border-gray-100 dark:border-zinc-800 mb-6">
+                            <form onSubmit={handleAddItem} className="bg-gray-50 dark:bg-zinc-800/30 p-4 rounded-xl border border-gray-100 dark:border-zinc-800 mb-6">
                                 <input 
                                     className="w-full bg-transparent border-b border-gray-200 dark:border-zinc-700 text-sm py-1 outline-none mb-3 dark:text-white"
                                     placeholder={t('planner.task_name')}
@@ -431,13 +431,12 @@ export const Planner: React.FC = () => {
                                     <div className="relative">
                                         <input 
                                             type="time" 
-                                            className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 text-xs outline-none text-gray-700 dark:text-gray-300 focus:border-primary transition-colors"
+                                            className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 text-xs outline-none text-gray-700 dark:text-gray-300 focus:border-primary transition-colors min-h-[36px] appearance-none"
                                             value={newItemTime}
                                             onChange={e => setNewItemTime(e.target.value)}
                                         />
                                     </div>
-                                    {/* Separate Badge for Timezone to fix overlap */}
-                                    <div className="text-[9px] text-gray-400 text-right mt-1">
+                                    <div className="text-[9px] text-gray-400 text-right mt-1.5">
                                         {t('planner.timezone_hint')}: <span className="text-primary font-medium">{user?.timezone?.split('/')[1] || 'Local'}</span>
                                     </div>
                                 </div>
@@ -455,7 +454,7 @@ export const Planner: React.FC = () => {
                                 </button>
                             </form>
                             
-                            <div className="flex items-start gap-2 text-[10px] text-gray-400 leading-tight pt-2 border-t border-gray-100 dark:border-zinc-800">
+                            <div className="flex items-start gap-2 text-[10px] text-gray-400 leading-tight pt-3 border-t border-gray-100 dark:border-zinc-800">
                                 <Info size={12} className="shrink-0 mt-0.5" />
                                 {t('planner.hint')}
                             </div>

@@ -9,7 +9,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import clsx from 'clsx';
 
 // --- ANIMATION WRAPPER ---
-const FadeInSection = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
+const FadeInSection = ({ children, delay = 0 }: { children?: React.ReactNode, delay?: number }) => (
     <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}

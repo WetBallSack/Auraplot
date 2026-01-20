@@ -464,7 +464,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                                     value={taskName}
                                     onChange={(e) => setTaskName(e.target.value)}
                                     placeholder="Gym, Read, etc." 
-                                    className="w-full bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:ring-1 focus:ring-primary outline-none transition-all dark:text-white"
+                                    className="w-full bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:ring-1 focus:ring-primary outline-none transition-all dark:text-white min-h-[42px]"
                                 />
                             </div>
                             <div className="space-y-1">
@@ -491,7 +491,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                                             type="time"
                                             value={taskTime}
                                             onChange={(e) => setTaskTime(e.target.value)}
-                                            className="w-full h-full bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-xl px-2 text-sm outline-none dark:text-white appearance-none pr-2"
+                                            className="w-full h-full bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-xl px-2 text-sm outline-none dark:text-white appearance-none"
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-gray-50 dark:bg-zinc-800/20 border border-gray-200 dark:border-zinc-800 rounded-xl flex items-center justify-center text-gray-300 dark:text-zinc-700 text-xs italic">
