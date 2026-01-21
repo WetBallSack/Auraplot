@@ -424,11 +424,11 @@ export const Planner: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="mb-3">
+                                <div className="mb-4">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-between mb-1">
                                         <span className="flex items-center gap-1"><Clock size={10} /> {t('planner.time')}</span>
                                     </label>
-                                    <div className="relative">
+                                    <div className="relative mb-1">
                                         <input 
                                             type="time" 
                                             className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 text-xs outline-none text-gray-700 dark:text-gray-300 focus:border-primary transition-colors min-h-[36px] appearance-none"
@@ -436,7 +436,7 @@ export const Planner: React.FC = () => {
                                             onChange={e => setNewItemTime(e.target.value)}
                                         />
                                     </div>
-                                    <div className="text-[9px] text-gray-400 text-right mt-1.5">
+                                    <div className="text-[9px] text-gray-400 text-right">
                                         {t('planner.timezone_hint')}: <span className="text-primary font-medium">{user?.timezone?.split('/')[1] || 'Local'}</span>
                                     </div>
                                 </div>
@@ -454,7 +454,7 @@ export const Planner: React.FC = () => {
                                 </button>
                             </form>
                             
-                            <div className="flex items-start gap-2 text-[10px] text-gray-400 leading-tight pt-3 border-t border-gray-100 dark:border-zinc-800">
+                            <div className="flex items-start gap-2 text-[10px] text-gray-400 leading-tight pt-3 border-t border-gray-100 dark:border-zinc-800 pb-2">
                                 <Info size={12} className="shrink-0 mt-0.5" />
                                 {t('planner.hint')}
                             </div>

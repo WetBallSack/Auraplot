@@ -468,7 +468,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ existingSessions, onRefres
                                 />
                             </div>
                             <div className="space-y-1">
-                                <div className="flex justify-between items-center mb-1 h-[15px]">
+                                <div className="flex justify-between items-center mb-2">
                                     <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Time</label>
                                     {/* Toggle Switch for Time */}
                                     <button
