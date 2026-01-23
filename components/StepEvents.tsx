@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LifeEvent } from '../types';
-import { Plus, Trash2, TrendingUp, TrendingDown, Zap, Anchor, HelpCircle, CalendarClock, Pencil, X, Check } from 'lucide-react';
+import { LifeEvent, Attachment } from '../types';
+import { Plus, Trash2, TrendingUp, TrendingDown, Zap, Anchor, HelpCircle, CalendarClock, Pencil, X, Check, FileText, Image, Link as LinkIcon, Video, Music } from 'lucide-react';
+import clsx from 'clsx';
 
 interface StepEventsProps {
   events: LifeEvent[];
@@ -56,7 +57,14 @@ export const StepEvents: React.FC<StepEventsProps> = ({ events, setEvents, onNex
     impact: 0,
     intensity: 5,
     stickiness: 0.5,
+    description: '',
+    attachments: []
   });
+
+  // State for adding new attachment
+  const [showJournal, setShowJournal] = useState(false);
+  const [newAttachmentUrl, setNewAttachmentUrl] = useState('');
+  const [newAttachmentType, setNewAttachmentType] = useState<Attachment['type']>('link');
 
   const resetForm = () => {
     setInputState({
@@ -65,8 +73,12 @@ export const StepEvents: React.FC<StepEventsProps> = ({ events, setEvents, onNex
       impact: 0,
       intensity: 5,
       stickiness: 0.5,
+      description: '',
+      attachments: []
     });
     setEditingId(null);
+    setShowJournal(false);
+    setNewAttachmentUrl('');
   };
 
   const handleAddOrUpdate = () => {
@@ -95,13 +107,39 @@ export const StepEvents: React.FC<StepEventsProps> = ({ events, setEvents, onNex
         date: event.date,
         impact: event.impact,
         intensity: event.intensity,
-        stickiness: event.stickiness
+        stickiness: event.stickiness,
+        description: event.description || '',
+        attachments: event.attachments || []
     });
+    if (event.description || (event.attachments && event.attachments.length > 0)) {
+        setShowJournal(true);
+    }
   };
 
   const removeEvent = (id: string) => {
     setEvents((prev) => prev.filter((e) => e.id !== id));
     if (editingId === id) resetForm();
+  };
+
+  const addAttachment = () => {
+    if (!newAttachmentUrl) return;
+    const attachment: Attachment = {
+        id: crypto.randomUUID(),
+        type: newAttachmentType,
+        url: newAttachmentUrl
+    };
+    setInputState(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), attachment]
+    }));
+    setNewAttachmentUrl('');
+  };
+
+  const removeAttachment = (id: string) => {
+      setInputState(prev => ({
+          ...prev,
+          attachments: prev.attachments?.filter(a => a.id !== id)
+      }));
   };
 
   return (
@@ -217,6 +255,94 @@ export const StepEvents: React.FC<StepEventsProps> = ({ events, setEvents, onNex
           </div>
         </div>
 
+        {/* Journal Section Toggle */}
+        <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+            <button 
+                type="button"
+                onClick={() => setShowJournal(!showJournal)}
+                className="w-full flex items-center justify-between py-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-primary transition-colors"
+            >
+                <span className="flex items-center gap-2">
+                    <FileText size={14} /> Journal & Media
+                </span>
+                {showJournal ? <X size={14} /> : <Plus size={14} />}
+            </button>
+            
+            <AnimatePresence>
+                {showJournal && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden space-y-4 pt-2"
+                    >
+                         <textarea 
+                            value={inputState.description}
+                            onChange={(e) => setInputState({ ...inputState, description: e.target.value })}
+                            placeholder="Terminal log: Describe the event, your feelings, and context..."
+                            className="w-full h-24 bg-gray-900 text-gray-200 font-mono text-xs p-3 rounded-lg border border-gray-700 focus:border-primary outline-none resize-none"
+                         />
+
+                         {/* Attachment Manager */}
+                         <div className="space-y-2">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase">Attached Media</div>
+                            
+                            {/* Input Row */}
+                            <div className="flex gap-2">
+                                <select 
+                                    value={newAttachmentType}
+                                    onChange={(e) => setNewAttachmentType(e.target.value as any)}
+                                    className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2 text-xs h-9 focus:border-primary outline-none dark:text-white"
+                                >
+                                    <option value="link">Link</option>
+                                    <option value="image">Image</option>
+                                    <option value="video">Video</option>
+                                    <option value="audio">Audio</option>
+                                </select>
+                                <input 
+                                    type="text"
+                                    value={newAttachmentUrl}
+                                    onChange={(e) => setNewAttachmentUrl(e.target.value)}
+                                    placeholder="https://..."
+                                    className="flex-1 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 text-xs focus:border-primary outline-none dark:text-white"
+                                />
+                                <button 
+                                    type="button"
+                                    onClick={addAttachment}
+                                    disabled={!newAttachmentUrl}
+                                    className="bg-gray-200 dark:bg-gray-700 hover:bg-primary hover:text-white text-gray-600 dark:text-gray-300 w-9 h-9 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
+                                >
+                                    <Plus size={16} />
+                                </button>
+                            </div>
+
+                            {/* List of Attachments */}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {inputState.attachments?.map(att => (
+                                    <div key={att.id} className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-full pl-3 pr-1 py-1">
+                                        {att.type === 'image' && <Image size={12} className="text-purple-400" />}
+                                        {att.type === 'video' && <Video size={12} className="text-blue-400" />}
+                                        {att.type === 'audio' && <Music size={12} className="text-pink-400" />}
+                                        {att.type === 'link' && <LinkIcon size={12} className="text-gray-400" />}
+                                        
+                                        <span className="text-[10px] max-w-[100px] truncate text-gray-600 dark:text-gray-300">
+                                            {att.url}
+                                        </span>
+                                        <button 
+                                            onClick={() => removeAttachment(att.id)}
+                                            className="p-1 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full text-gray-500"
+                                        >
+                                            <X size={10} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                         </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+
         <button
           onClick={handleAddOrUpdate}
           disabled={!inputState.name || !inputState.date}
@@ -247,10 +373,13 @@ export const StepEvents: React.FC<StepEventsProps> = ({ events, setEvents, onNex
               }`}
               style={{ borderLeftColor: event.impact >= 0 ? '#00C896' : '#FF5F5F' }}
             >
-              <div>
+              <div className="min-w-0">
                 <h4 className="font-semibold text-sm flex items-center gap-2 dark:text-gray-200">
-                    {event.name}
-                    {editingId === event.id && <span className="text-[10px] bg-primary text-white px-1.5 rounded">EDITING</span>}
+                    <span className="truncate">{event.name}</span>
+                    {editingId === event.id && <span className="text-[10px] bg-primary text-white px-1.5 rounded shrink-0">EDITING</span>}
+                    {(event.description || (event.attachments && event.attachments.length > 0)) && (
+                        <FileText size={12} className="text-gray-400 shrink-0" />
+                    )}
                 </h4>
                 <div className="flex gap-3 text-xs text-gray-400 dark:text-gray-500 mt-1 items-center">
                   <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">{new Date(event.date).toLocaleDateString()}</span>
@@ -258,7 +387,7 @@ export const StepEvents: React.FC<StepEventsProps> = ({ events, setEvents, onNex
                   <span>Int: {event.intensity}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button onClick={(e) => { e.stopPropagation(); startEditing(event); }} className="text-gray-300 hover:text-primary dark:text-gray-600 dark:hover:text-primary">
                     <Pencil size={16} />
                 </button>

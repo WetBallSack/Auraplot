@@ -1,5 +1,12 @@
 
 
+export interface Attachment {
+  id: string;
+  type: 'image' | 'video' | 'audio' | 'link';
+  url: string;
+  label?: string;
+}
+
 export interface LifeEvent {
   id: string;
   name: string;
@@ -7,6 +14,8 @@ export interface LifeEvent {
   impact: number; // -10 to 10
   intensity: number; // 1 to 10
   stickiness: number; // 0 to 1
+  description?: string; // Journal Entry
+  attachments?: Attachment[];
 }
 
 export type Timeframe = '1H' | '4H' | '1D';
