@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { motion, useScroll, useTransform, useMotionValue } from 'framer-motion';
 import { Logo } from './Logo';
@@ -363,10 +364,10 @@ export const Landing: React.FC<{ onEnter: () => void, onPricing: () => void, onT
                 <div className="flex-1 order-1 lg:order-2">
                     <FadeInSection>
                         <h2 className="text-3xl font-light text-gray-900 dark:text-white mb-6">
-                            Quantify Reality
+                            Quantify Happiness
                         </h2>
                         <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed text-lg font-light max-w-md">
-                            Every event is a trade. Aura logs these inputs to calculate your emotional volatility with financial precision.
+                            Every event is a trade. As the premier quantified self candlestick chart journal, Aura logs inputs to calculate your emotional volatility with financial precision.
                         </p>
                         <div className="flex items-center gap-4 text-xs font-mono text-gray-400 uppercase tracking-wider">
                             <span className="flex items-center gap-2 text-primary"><Terminal size={14} /> Real-time</span>

@@ -2,7 +2,7 @@
 export const translations = {
   en: {
     landing: {
-      subtitle: "The Mint Terminal for your life’s market data.",
+      subtitle: "Quantify happiness with the ultimate quantified self candlestick chart journal.",
       track_volatility: "Track Volatility",
       track_volatility_sub: "Visualize your life's volatility and emotional variance",
       visualize_pnl: "Visualize PNL",
@@ -15,7 +15,7 @@ export const translations = {
       initialize: "Initialize",
       // New Sections
       pain_killer_title: "Stop Writing. Start Trading.",
-      pain_killer_desc: "Traditional journaling is slow, subjective, and prone to 'The Blank Page' syndrome. Aura turns your life into a live market terminal. Stop wondering if you’re growing—read the tape.",
+      pain_killer_desc: "Traditional journaling is slow. Aura is a quantified self candlestick chart journal that turns your life into a live market terminal. Quantify happiness by treating every event as a trade.",
       simulator_title: "Trade Your Day",
       simulator_desc: "Try the simulator. Input an event and set the intensity to see how it moves your bio-market candle.",
       sim_placeholder: "e.g., Ran 5km, Promotion, Breakup...",
@@ -57,7 +57,7 @@ export const translations = {
       comp_predictive: "Predictive Insight",
 
       proof_title: "Proof of Growth",
-      proof_desc: "Data doesn't lie. See how 500+ events across 12 months reveal the true trajectory of your career and health.",
+      proof_desc: "Data doesn't lie. See how our quantified self candlestick chart journal tracks 500+ events to reveal the true trajectory of your happiness and health.",
       proof_join: "Join 1,000+ users sharing their Life ROI.",
       bullish_year: "Bullish Year",
       bearish_month: "Bearish Month",
