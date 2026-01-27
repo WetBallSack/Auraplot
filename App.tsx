@@ -134,7 +134,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="antialiased text-gray-900 dark:text-gray-100 bg-[#F9FAFB] dark:bg-gray-900 min-h-screen font-sans selection:bg-primary selection:text-white transition-colors duration-300 relative flex flex-col">
+    <div className="antialiased text-gray-900 dark:text-gray-100 bg-[#F9FAFB] dark:bg-[#000000] min-h-screen font-sans selection:bg-primary/30 selection:text-white transition-colors duration-500 relative flex flex-col">
       <div className="flex-1">
         <AnimatePresence mode="wait">
             
@@ -240,7 +240,7 @@ const AppContent: React.FC = () => {
             <div className="pointer-events-auto flex items-center gap-4">
                 
                 {/* Support Link */}
-                <div className="backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/20 dark:border-white/10 px-5 py-2.5 rounded-full shadow-xl flex items-center gap-3 hover:bg-white/50 dark:hover:bg-black/50 transition-all duration-300 group">
+                <div className="backdrop-blur-2xl bg-white/70 dark:bg-[#1C1C1E]/80 border border-white/20 dark:border-white/5 px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 hover:scale-105 transition-all duration-300 group">
                     <div className="flex items-center gap-2">
                         <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -259,7 +259,7 @@ const AppContent: React.FC = () => {
                 {/* FAQ Link */}
                 <button 
                     onClick={handleGoToFAQ}
-                    className="backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/20 dark:border-white/10 px-4 py-2.5 rounded-full shadow-xl text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:bg-white/50 dark:hover:bg-black/50 hover:text-gray-800 dark:hover:text-white transition-all duration-300"
+                    className="backdrop-blur-2xl bg-white/70 dark:bg-[#1C1C1E]/80 border border-white/20 dark:border-white/5 px-5 py-3 rounded-full shadow-2xl text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:bg-white dark:hover:bg-[#2C2C2E] hover:text-gray-800 dark:hover:text-white transition-all duration-300 hover:scale-105"
                 >
                     FAQ
                 </button>
@@ -267,7 +267,7 @@ const AppContent: React.FC = () => {
                 {/* Terms Link */}
                 <button 
                     onClick={handleGoToTerms}
-                    className="backdrop-blur-xl bg-white/40 dark:bg-black/40 border border-white/20 dark:border-white/10 px-4 py-2.5 rounded-full shadow-xl text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:bg-white/50 dark:hover:bg-black/50 hover:text-gray-800 dark:hover:text-white transition-all duration-300"
+                    className="backdrop-blur-2xl bg-white/70 dark:bg-[#1C1C1E]/80 border border-white/20 dark:border-white/5 px-5 py-3 rounded-full shadow-2xl text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:bg-white dark:hover:bg-[#2C2C2E] hover:text-gray-800 dark:hover:text-white transition-all duration-300 hover:scale-105"
                 >
                     Terms
                 </button>

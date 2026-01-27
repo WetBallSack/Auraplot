@@ -104,7 +104,7 @@ export const translations = {
       create_account: "Create Account",
       establish_identity: "Establish Identity",
       create_protocol: "Create your terminal access protocol.",
-      full_name: "Full Name",
+      username: "Username",
       email_protocol: "Email Protocol",
       initializing: "Initializing...",
       or: "Or",
@@ -341,7 +341,7 @@ export const translations = {
       create_account: "创建账户",
       establish_identity: "建立身份",
       create_protocol: "创建您的终端访问协议。",
-      full_name: "全名",
+      username: "用户名",
       email_protocol: "邮件协议",
       initializing: "初始化中...",
       or: "或",
@@ -466,7 +466,7 @@ export const translations = {
         create_wallet_btn: "获取钱包",
         upgrading: "正在升级终端...",
         confirm_payment: "确认付款",
-        secure_badge: "256位加密交易"
+        secure_badge: "256-BIT ENCRYPTED TRANSACTION"
     },
     tour: {
         welcome_title: "欢迎来到 Aura",

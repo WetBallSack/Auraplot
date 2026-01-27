@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark';
@@ -10,14 +11,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize from local storage or system preference
+  // Initialize from local storage or default to dark
   const [theme, setTheme] = useState<Theme>(() => {
     try {
         const saved = localStorage.getItem('aura-theme');
         if (saved === 'dark' || saved === 'light') return saved;
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        return 'dark';
     } catch {
-        return 'light';
+        return 'dark';
     }
   });
 
