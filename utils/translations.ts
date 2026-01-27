@@ -40,6 +40,16 @@ export const translations = {
       feat_reminders: "Smart Reminders",
       feat_reminders_desc: "Get pre-market briefs and 20min task alerts via email.",
       
+      // How It Works
+      how_title: "Execution Protocol",
+      how_desc: "Aura transforms subjective experience into objective financial data through a 3-step active logging pipeline.",
+      how_step1_title: "Active Logging",
+      how_step1_desc: "Log events manually via the terminal. Intentional input captures the 'sentiment' that passive auto-trackers miss.",
+      how_step2_title: "Algorithmic Ingest",
+      how_step2_desc: "Our NECM engine processes your inputs (Impact, Intensity, Stickiness) to generate real-time OHLC candle structures.",
+      how_step3_title: "Market Optimization",
+      how_step3_desc: "Review your Daily PNL. Identify 'bearish' habits to short and 'bullish' patterns to long.",
+
       // Comparison
       compare_title: "The Strategic Advantage",
       compare_desc: "Why Aura is the superior instrument for self-quantification.",
@@ -273,6 +283,16 @@ export const translations = {
       feat_planner_desc: "安排未来的行动。你的生活是一系列精心计算的交易。",
       feat_reminders: "智能提醒",
       feat_reminders_desc: "通过电子邮件获取盘前简报和任务前20分钟提醒。",
+      
+      how_title: "执行协议",
+      how_desc: "Aura 通过 3 步主动记录流程，将主观体验转化为客观的金融数据。",
+      how_step1_title: "主动记录",
+      how_step1_desc: "通过终端手动记录事件。有意识的输入能捕捉被动追踪器遗漏的“市场情绪”。",
+      how_step2_title: "算法摄取",
+      how_step2_desc: "我们的 NECM 引擎处理您的输入（影响、强度、粘性），生成实时 OHLC 蜡烛结构。",
+      how_step3_title: "市场优化",
+      how_step3_desc: "查看您的每日 PNL。识别“看跌”的习惯做空，识别“看涨”的模式做多。",
+
       compare_title: "战略优势",
       compare_desc: "为什么 Aura 是优越的自我量化工具。",
       comp_old: "老派日记",

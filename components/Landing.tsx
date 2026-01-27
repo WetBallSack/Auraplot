@@ -1,11 +1,12 @@
 
 
+
 import React, { useState } from 'react';
 import { motion, useScroll, useTransform, useMotionValue } from 'framer-motion';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
-import { Crown, TrendingUp, Activity, BarChart2, Shield, ArrowUpRight, ArrowDownRight, CheckSquare, Calendar, Bell, Terminal, ArrowRight, Zap, Loader2, Check, Smartphone } from 'lucide-react';
+import { Crown, TrendingUp, Activity, BarChart2, Shield, ArrowUpRight, ArrowDownRight, CheckSquare, Calendar, Bell, Terminal, ArrowRight, Zap, Loader2, Check, Smartphone, Database, FileInput, Cpu } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import clsx from 'clsx';
 
@@ -22,6 +23,116 @@ const FadeInSection = ({ children, delay = 0 }: { children?: React.ReactNode, de
 );
 
 // --- SUB-COMPONENTS ---
+
+const HowItWorksSection = ({ t }: { t: any }) => {
+    return (
+        <section className="relative z-10 py-32 px-6 bg-white dark:bg-[#050505] border-t border-gray-100 dark:border-gray-900 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none"></div>
+            
+            <div className="max-w-7xl mx-auto relative">
+                <FadeInSection>
+                    <div className="text-center mb-24">
+                        <span className="text-xs font-bold text-primary uppercase tracking-widest mb-3 block">System Architecture</span>
+                        <h2 className="text-4xl md:text-5xl font-light text-gray-900 dark:text-white mb-6">
+                            {t('landing.how_title')}
+                        </h2>
+                        <p className="text-lg text-gray-500 font-light max-w-2xl mx-auto">
+                            {t('landing.how_desc')}
+                        </p>
+                    </div>
+                </FadeInSection>
+
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative">
+                    
+                    {/* Step 1 */}
+                    <div className="relative flex flex-col items-center flex-1 w-full md:w-auto z-10">
+                        <FadeInSection delay={0.1}>
+                            <div className="w-24 h-24 bg-white dark:bg-[#080808] border border-gray-200 dark:border-gray-800 rounded-3xl flex items-center justify-center shadow-2xl relative group hover:border-primary/50 transition-colors duration-500">
+                                <FileInput size={32} className="text-gray-400 group-hover:text-primary transition-colors" />
+                                <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            </div>
+                        </FadeInSection>
+                        <div className="text-center mt-6">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('landing.how_step1_title')}</h3>
+                            <p className="text-sm text-gray-500 max-w-[200px] mx-auto leading-relaxed">{t('landing.how_step1_desc')}</p>
+                        </div>
+                    </div>
+
+                    {/* Connector 1-2 (Desktop) */}
+                    <div className="hidden md:flex flex-1 h-px bg-gray-200 dark:bg-gray-800 relative self-start mt-12 mx-4 overflow-hidden">
+                        <div className="absolute right-0 -top-1.5 text-gray-300 dark:text-gray-700 z-20">
+                            <ArrowRight size={14} />
+                        </div>
+                        <motion.div 
+                            className="absolute top-0 left-0 h-full w-1/2 bg-gradient-to-r from-transparent via-primary to-transparent z-10"
+                            animate={{ x: ["-100%", "200%"] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        />
+                    </div>
+
+                    {/* Connector (Mobile) */}
+                    <div className="md:hidden h-16 w-px bg-gray-200 dark:bg-gray-800 my-2 relative overflow-hidden">
+                        <motion.div 
+                            className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-transparent via-primary to-transparent"
+                            animate={{ top: ["-100%", "100%"] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        />
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className="relative flex flex-col items-center flex-1 w-full md:w-auto z-10">
+                        <FadeInSection delay={0.3}>
+                            <div className="w-24 h-24 bg-white dark:bg-[#080808] border border-gray-200 dark:border-gray-800 rounded-3xl flex items-center justify-center shadow-2xl relative group hover:border-primary/50 transition-colors duration-500">
+                                <Cpu size={32} className="text-gray-400 group-hover:text-primary transition-colors" />
+                                <div className="absolute inset-0 rounded-3xl border border-dashed border-primary/30 opacity-0 group-hover:opacity-100 animate-[spin_10s_linear_infinite]"></div>
+                            </div>
+                        </FadeInSection>
+                        <div className="text-center mt-6">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('landing.how_step2_title')}</h3>
+                            <p className="text-sm text-gray-500 max-w-[200px] mx-auto leading-relaxed">{t('landing.how_step2_desc')}</p>
+                        </div>
+                    </div>
+
+                    {/* Connector 2-3 (Desktop) */}
+                    <div className="hidden md:flex flex-1 h-px bg-gray-200 dark:bg-gray-800 relative self-start mt-12 mx-4 overflow-hidden">
+                        <div className="absolute right-0 -top-1.5 text-gray-300 dark:text-gray-700 z-20">
+                            <ArrowRight size={14} />
+                        </div>
+                        <motion.div 
+                            className="absolute top-0 left-0 h-full w-1/2 bg-gradient-to-r from-transparent via-primary to-transparent z-10"
+                            animate={{ x: ["-100%", "200%"] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: 0.75 }}
+                        />
+                    </div>
+
+                    {/* Connector (Mobile) */}
+                    <div className="md:hidden h-16 w-px bg-gray-200 dark:bg-gray-800 my-2 relative overflow-hidden">
+                        <motion.div 
+                            className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-transparent via-primary to-transparent"
+                            animate={{ top: ["-100%", "100%"] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear", delay: 1 }}
+                        />
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="relative flex flex-col items-center flex-1 w-full md:w-auto z-10">
+                        <FadeInSection delay={0.5}>
+                            <div className="w-24 h-24 bg-white dark:bg-[#080808] border border-gray-200 dark:border-gray-800 rounded-3xl flex items-center justify-center shadow-2xl relative group hover:border-primary/50 transition-colors duration-500">
+                                <TrendingUp size={32} className="text-gray-400 group-hover:text-primary transition-colors" />
+                                <div className="absolute -inset-px rounded-3xl bg-gradient-to-tl from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            </div>
+                        </FadeInSection>
+                        <div className="text-center mt-6">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('landing.how_step3_title')}</h3>
+                            <p className="text-sm text-gray-500 max-w-[200px] mx-auto leading-relaxed">{t('landing.how_step3_desc')}</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+    );
+};
 
 const ComparisonSection = ({ t }: { t: any }) => {
     const rows = [
@@ -456,10 +567,13 @@ export const Landing: React.FC<{ onEnter: () => void, onPricing: () => void, onT
             </div>
         </section>
 
-        {/* 5. Comparison Section (New) */}
+        {/* 5. How It Works Section (New) */}
+        <HowItWorksSection t={t} />
+
+        {/* 6. Comparison Section */}
         <ComparisonSection t={t} />
 
-        {/* 6. Proof - Minimal Charts */}
+        {/* 7. Proof - Minimal Charts */}
         <section className="relative z-10 py-40 px-6 overflow-hidden bg-gray-50 dark:bg-[#080808]">
             <div className="max-w-6xl mx-auto">
                 <FadeInSection>
@@ -523,7 +637,7 @@ export const Landing: React.FC<{ onEnter: () => void, onPricing: () => void, onT
             </div>
         </section>
 
-        {/* 7. Footer - Minimal */}
+        {/* 8. Footer - Minimal */}
         <footer className="relative z-10 py-20 px-6 bg-white dark:bg-[#050505] border-t border-gray-100 dark:border-gray-900">
             <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
                 <div className="text-center md:text-left">
